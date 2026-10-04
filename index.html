@@ -10,6 +10,7 @@
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/atlas.css">
+<style>[hidden]{display:none!important}</style>
 </head>
 <body>
 <div id="app">
@@ -21,12 +22,12 @@
     <nav id="crumbs" aria-label="Where you are"></nav>
 
     <div id="playbar" role="group" aria-label="Playback">
-      <button class="cbtn" id="btn-prev" title="Previous point (&larr;)"><svg viewBox="0 0 24 24"><path d="M17 5v14L7 12zM5 5h2v14H5z"/></svg></button>
-      <button class="cbtn" id="btn-voice-play" title="Pause (Space)"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <button class="cbtn" hidden id="btn-prev" title="Previous point (&larr;)"><svg viewBox="0 0 24 24"><path d="M17 5v14L7 12zM5 5h2v14H5z"/></svg></button>
+      <button class="cbtn" hidden id="btn-voice-play" title="Pause (Space)"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
       <button id="btn-next" title="Next point (&rarr;)"><span id="next-label">Next</span><span class="k" id="next-count"></span><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 4l12 8-12 8z"/></svg></button>
-      <button class="cbtn" id="btn-replay" title="Replay this point (R)"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+      <button class="cbtn" hidden id="btn-replay" title="Replay this point (R)"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
       <div id="pips" role="group" aria-label="Points in this step"></div>
-      <div class="seg" id="mode-seg" role="group" aria-label="Play mode" title="Step: one point at a time. Topic: press Play once and the topic plays through. Auto: plays everything, opens topics by itself (S)">
+      <div class="seg" hidden id="mode-seg" role="group" aria-label="Play mode" title="Step: one point at a time. Topic: press Play once and the topic plays through. Auto: plays everything, opens topics by itself (S)">
         <button id="mode-step" data-v="step">Step</button><button id="mode-topic" data-v="topic">Topic</button><button id="mode-auto" data-v="auto">Auto</button>
       </div>
     </div>
@@ -36,10 +37,10 @@
         <button class="tbtn" id="btn-zoom" title="Zoom into a component (Z)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5M11 8v6M8 11h6"/></svg><span class="lbl">Zoom</span><span class="badge" id="zoom-count"></span></button>
         <div id="zoom-menu" class="menu hidden"></div>
       </div>
-      <button class="tbtn" id="btn-cc" title="Step text box (C)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 11.5a2 2 0 1 0 0 1.5M15.5 11.5a2 2 0 1 0 0 1.5"/></svg></button>
-      <button class="tbtn" id="btn-progress" title="Learning progress (L)"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="lbl">Progress</span></button>
+      <button class="tbtn" hidden id="btn-cc" title="Step text box (C)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 11.5a2 2 0 1 0 0 1.5M15.5 11.5a2 2 0 1 0 0 1.5"/></svg></button>
+      <button class="tbtn" hidden id="btn-progress" title="Learning progress (L)"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="lbl">Progress</span></button>
       <button class="tbtn" id="btn-map" title="System map (M)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Map</span></button>
-      <button class="tbtn" id="btn-tour" title="Guided tour"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg><span class="lbl">Tour</span></button>
+      <button class="tbtn" hidden id="btn-tour" title="Guided tour"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg><span class="lbl">Tour</span></button>
       <button class="tbtn" id="btn-refs" title="References (opens in a new tab)"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg><span class="lbl">References</span></button>
       <button class="tbtn" id="btn-deep" title="Deep dive panel (D)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16"/></svg><span class="lbl">Deep dive</span></button>
       <button class="tbtn" id="btn-rails" title="Focus mode: hide all side panels (F)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
@@ -101,20 +102,20 @@
 
   <div id="settings" class="hidden" role="dialog" aria-label="Playback settings">
     <h4>Playback</h4>
-    <div class="srow stack"><label>Play mode<span class="hint">Step: one point per press. Topic: press Play once, it plays through. Auto: opens and plays every topic itself.</span></label><div class="seg" id="set-mode" role="group" aria-label="Play mode"><button data-v="step">Step</button><button data-v="topic">Topic</button><button data-v="auto">Auto</button></div></div>
-    <div class="srow"><label>Reading speed<span class="hint">how fast points advance in Topic and Auto</span></label><select id="set-rate"><option value="0.5">Slowest</option><option value="0.7">Slow</option><option value="0.9">Normal</option><option value="1.15">Fast</option><option value="1.3">Fastest</option></select></div>
-    <div class="srow"><label>Pauses<span class="hint">time to read each point</span></label><select id="set-pause"><option value="0.5">Short</option><option value="1">Normal</option><option value="1.8">Long</option><option value="3">Very long</option></select></div>
+    <div hidden class="srow stack"><label>Play mode<span class="hint">Step: one point per press. Topic: press Play once, it plays through. Auto: opens and plays every topic itself.</span></label><div class="seg" id="set-mode" role="group" aria-label="Play mode"><button data-v="step">Step</button><button data-v="topic">Topic</button><button data-v="auto">Auto</button></div></div>
+    <div hidden class="srow"><label>Reading speed<span class="hint">how fast points advance in Topic and Auto</span></label><select id="set-rate"><option value="0.5">Slowest</option><option value="0.7">Slow</option><option value="0.9">Normal</option><option value="1.15">Fast</option><option value="1.3">Fastest</option></select></div>
+    <div hidden class="srow"><label>Pauses<span class="hint">time to read each point</span></label><select id="set-pause"><option value="0.5">Short</option><option value="1">Normal</option><option value="1.8">Long</option><option value="3">Very long</option></select></div>
     <div class="srow"><label>Step text box<span class="hint">left panel, scrolls if long</span></label><select id="set-cc"><option value="on">Shown</option><option value="off">Hidden</option></select></div>
     <h4 class="sub">Appearance</h4>
     <div class="srow"><label>Theme</label><div class="seg" id="set-theme" role="group" aria-label="Theme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
-    <div class="keys"><span><kbd>&rarr;</kbd>next point</span><span><kbd>&larr;</kbd>previous</span><span><kbd>Space</kbd>pause / next</span><span><kbd>Esc</kbd>zoom out</span><span><kbd>Z</kbd>zoom menu</span><span><kbd>S</kbd>auto / step</span><span><kbd>C</kbd>narration box</span><span><kbd>M</kbd>map</span><span><kbd>D</kbd>deep dive</span><span><kbd>F</kbd>focus mode</span><span><kbd>T</kbd>theme</span></div>
+    <div hidden class="keys"><span><kbd>&rarr;</kbd>next point</span><span><kbd>&larr;</kbd>previous</span><span><kbd>Space</kbd>pause / next</span><span><kbd>Esc</kbd>zoom out</span><span><kbd>Z</kbd>zoom menu</span><span><kbd>S</kbd>auto / step</span><span><kbd>C</kbd>narration box</span><span><kbd>M</kbd>map</span><span><kbd>D</kbd>deep dive</span><span><kbd>F</kbd>focus mode</span><span><kbd>T</kbd>theme</span></div>
   </div>
 
   <aside id="prog" class="hidden" role="dialog" aria-label="Learning progress">
     <div class="prog-head"><div><div class="dk">Progress</div><h3>Your learning path</h3></div><button class="x sm" id="prog-close" title="Close (Esc)" aria-label="Close progress panel">&#10005;</button></div>
     <div id="prog-sum"></div>
     <div class="prog-legend"><span><i class="pr pr2"></i>played: recorded automatically</span><span><i class="ck on"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>learned: you tick it</span></div>
-    <div class="prog-tools"><button id="prog-expand">Expand all</button><button id="prog-collapse">Collapse all</button><button id="prog-filter">Hide learned</button><button id="prog-map">Open map</button></div>
+    <div class="prog-tools"><button id="prog-expand">Expand all</button><button id="prog-collapse">Collapse all</button><button id="prog-filter">Hide learned</button><button hidden id="prog-map">Open map</button></div>
     <div id="prog-scroll"><div id="prog-tree"></div></div>
     <div class="prog-foot"><button id="prog-reset-p">Reset played</button><button id="prog-reset-l">Reset learned</button></div>
   </aside>
@@ -132,8 +133,8 @@
         <div class="sheet-actions">
           <input id="map-filter" placeholder="Filter: attention, KV cache, scheduler…" autocomplete="off" aria-label="Filter chambers">
           <button class="pill" id="map-progress-btn">Progress</button>
-          <button class="pill" id="tour-big">Big-picture tour</button>
-          <button class="pill" id="tour-deep">Full deep tour</button>
+          <button class="pill" hidden id="tour-big">Big-picture tour</button>
+          <button class="pill" hidden id="tour-deep">Full deep tour</button>
           <button class="x" id="map-close" title="Close (Esc)" aria-label="Close the map">&#10005;</button>
         </div>
       </div>
@@ -147,14 +148,15 @@
       <div class="dk">Outage Workflow</div>
       <h1>How a down cell<br>becomes <em>an impact report.</em></h1>
       <p>An interactive, zoomable walkthrough of the agentic outage analysis system. One recorded synthetic case is followed end to end: how each query is chosen, what data comes back, how the program turns it into state, text and a stopping decision. The actions are the recorded ones; the decision texts at each step are hand-written illustrations.</p>
-      <div class="intro-stats"><div><b id="intro-count">41</b>zoomable chambers</div><div><b>3</b>levels of depth</div><div><b id="intro-beats">300+</b>points</div></div>
+      <div class="intro-stats"><div><b id="intro-count">9</b>zoomable chambers</div><div><b>3</b>levels of depth</div><div><b id="intro-beats">150</b>points</div></div>
+      <p class="start-sub">Everything is manual: <kbd>Next</kbd> or <kbd>&rarr;</kbd> shows the next point, <kbd>&larr;</kbd> goes back one point, <kbd>Back</kbd> zooms out, a ringed component zooms in.</p>
       <div class="intro-actions">
         <button id="intro-resume" class="pill primary" style="display:none">Continue where I left off</button>
-        <button id="intro-tour" class="pill primary">Start the guided tour</button>
-        <button id="intro-go" class="pill">Explore freely</button>
+        <button hidden id="intro-tour" class="pill primary">Start the guided tour</button>
+        <button id="intro-go" class="pill primary">Open the case</button>
         <button id="intro-map" class="pill">Open the map</button>
       </div>
-      <div class="intro-mode"><span>Play mode</span><div class="seg" id="intro-mode-seg"><button data-v="step">Step by step</button><button data-v="topic">Play a topic</button><button data-v="auto">Autoplay</button></div><span>Text only. No voice.</span></div>
+      <div hidden class="intro-mode"><span>Play mode</span><div class="seg" hidden id="intro-mode-seg"><button data-v="step">Step by step</button><button data-v="topic">Play a topic</button><button data-v="auto">Autoplay</button></div><span>Text only. No voice.</span></div>
     </div>
   </div>
 </div>

@@ -78,6 +78,19 @@
         var x1 = Math.max.apply(null, xs) + cw, y1 = Math.max.apply(null, ys) + ch;
         return ctx.rect(x0, y0, x1 - x0 + 2, y1 - y0 + 2, { fill: 'none', stroke: color || 'cyan', sw: 2, rx: 3, parent: g });
       },
+      legendRow: function (x, y, withBackups) {
+        var lg = ctx.group({ parent: g });
+        var items = withBackups
+          ? Object.keys(BACKUP_FILL).map(function (k) { return [BACKUP_FILL[k], k === 'none' ? 'D0, no eligible backup' : 'to ' + k]; })
+          : ['u', 'm', 'e', 'o', 't'].map(function (k) { return [CLASS_FILL[k], CLASS_NAME[k].replace('valid: ', '').replace('queried: ', '').replace('unknown: ', '')]; });
+        var cx = x;
+        items.forEach(function (it) {
+          ctx.rect(cx, y - 6, 12, 12, { fill: it[0], stroke: 'line', sw: 0.8, parent: lg });
+          ctx.text(cx + 18, y, it[1], { size: 10.5, color: 'dim', parent: lg });
+          cx += 18 + it[1].length * 6.4 + 22;
+        });
+        return lg;
+      },
       legend: function (x, y, withBackups) {
         var lg = ctx.group({ parent: g });
         var items = ['u', 'm', 'e', 'o', 't'].map(function (k) { return [CLASS_FILL[k], CLASS_NAME[k]]; });

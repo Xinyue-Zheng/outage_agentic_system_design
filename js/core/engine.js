@@ -23,9 +23,9 @@
   /* playMode: 'step' = one point per press; 'topic' = press Play once, the topic plays through with pauses;
    * 'auto' = plays everything and opens each new topic by itself. Derived: settings.mode ('step'|'auto') is
    * how points advance inside a topic, settings.autoStart says whether a newly opened topic starts alone. */
-  var DEFAULTS = { playMode: 'topic', rate: 0.9, pause: 1, voiceMode: 'off', voiceName: '', theme: 'dark', rails: true, deep: null, captions: true };
+  var DEFAULTS = { playMode: 'step', rate: 0.9, pause: 1, voiceMode: 'off', voiceName: '', theme: 'dark', rails: true, deep: null, captions: true };
   function derivePlayMode(s) {
-    if (['step', 'topic', 'auto'].indexOf(s.playMode) < 0) s.playMode = 'topic';
+    s.playMode = 'step';   /* this app is manual only: every point waits for Next */
     s.mode = s.playMode === 'step' ? 'step' : 'auto';
     s.autoStart = s.playMode === 'auto';
   }
@@ -233,9 +233,8 @@
         if (Engine._queued) { var q = Engine._queued; Engine._queued = null; return Engine.go(q[0], q[1]); }
         /* a newly opened topic waits for Play, unless the user chose Auto (or this call insists) */
         if (mode === 'restore') return Engine.restoreStep(step, beat);
-        var autostart = opts.autostart !== undefined ? opts.autostart : (Engine._forceAutoStart || Engine.settings.autoStart);
-        if (autostart) return Engine.playStep(step, { startBeat: beat });
-        return Engine.prepareStep(step, { startBeat: beat });
+        /* no waiting screen: a chamber starts at its first point and then waits for Next */
+        return Engine.playStep(step, { startBeat: beat });
       });
     });
   };
@@ -1098,9 +1097,8 @@
     if (cur.pending) { lbl.textContent = 'Start'; cnt.textContent = ''; return; }
     var nb = cur.bt.n, j = Math.max(0, cur.beatIdx);
     var n = (cur.impl.steps || []).length;
-    if (cur.beatIdx < nb - 1) { lbl.textContent = 'Next point'; cnt.textContent = (j + 1) + '/' + nb; }
-    else if (cur.step < n - 1) { lbl.textContent = 'Next step'; cnt.textContent = ''; }
-    else if (Engine.tour) { lbl.textContent = 'Next chamber'; cnt.textContent = ''; }
+    if (cur.beatIdx < nb - 1) { lbl.textContent = 'Next'; cnt.textContent = 'point ' + (j + 1) + ' of ' + nb; }
+    else if (cur.step < n - 1) { lbl.textContent = 'Next'; cnt.textContent = 'step ' + (cur.step + 2) + ' of ' + n; }
     else if (Engine.children(cur.id).length) { lbl.textContent = 'Zoom in'; cnt.textContent = ''; }
     else { lbl.textContent = 'End'; cnt.textContent = ''; }
   }
@@ -1364,6 +1362,8 @@
 
   function showBeat(cur, bs, j, instant) {
     var b = bs[j];
+    var stTitle = (cur.impl.steps[cur.step] || {}).title || '';
+    $('#hud-step').textContent = 'Step ' + (cur.step + 1) + ' of ' + cur.impl.steps.length + '  ·  ' + stTitle + '  ·  point ' + (j + 1) + ' of ' + bs.length;
     $$('.pip', $('#pips')).forEach(function (p, i) { p.classList.toggle('done', i < j); p.classList.toggle('cur', i === j); if (i === j) p.setAttribute('aria-current', 'step'); else p.removeAttribute('aria-current'); });
     if (!instant) setNarration(b.say);
     if (b.card) addCard(b.card, j, instant);
