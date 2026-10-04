@@ -8,9 +8,11 @@
 <meta name="theme-color" content="#000000">
 <script>try { var t = JSON.parse(localStorage.getItem('atlas.settings.v2') || '{}').theme; if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="css/fonts.css?v=4ed7371">
-<link rel="stylesheet" href="css/atlas.css?v=4ed7371">
-<style>[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/fonts.css?v=prev-graph-1">
+<link rel="stylesheet" href="css/atlas.css?v=prev-graph-1">
+<style>[hidden]{display:none!important}
+#btn-prev { height: 32px; padding: 0 15px; border-radius: 980px; background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; border: 1px solid var(--line-2); transition: all .3s var(--ease); }
+#btn-prev:hover { transform: scale(1.03); background: var(--line-2); }</style>
 </head>
 <body>
 <div id="app">
@@ -22,7 +24,7 @@
     <nav id="crumbs" aria-label="Where you are"></nav>
 
     <div id="playbar" role="group" aria-label="Playback">
-      <button class="cbtn" hidden id="btn-prev" title="Previous point (&larr;)"><svg viewBox="0 0 24 24"><path d="M17 5v14L7 12zM5 5h2v14H5z"/></svg></button>
+      <button id="btn-prev" title="Previous point (&larr;)"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16 4L4 12l12 8z"/></svg><span>Previous</span></button>
       <button class="cbtn" hidden id="btn-voice-play" title="Pause (Space)"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
       <button id="btn-next" title="Next point (&rarr;)"><span id="next-label">Next</span><span class="k" id="next-count"></span><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 4l12 8-12 8z"/></svg></button>
       <button class="cbtn" hidden id="btn-replay" title="Replay this point (R)"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
@@ -161,25 +163,25 @@
   </div>
 </div>
 
-<script src="js/core/catalog.js?v=4ed7371"></script>
-<script src="js/core/glossary.js?v=4ed7371"></script>
-<script src="js/core/refs.js?v=4ed7371"></script>
-<script src="js/core/ctx.js?v=4ed7371"></script>
-<script src="js/core/narrator.js?v=4ed7371"></script>
-<script src="js/core/engine.js?v=4ed7371"></script>
+<script src="js/core/catalog.js?v=prev-graph-1"></script>
+<script src="js/core/glossary.js?v=prev-graph-1"></script>
+<script src="js/core/refs.js?v=prev-graph-1"></script>
+<script src="js/core/ctx.js?v=prev-graph-1"></script>
+<script src="js/core/narrator.js?v=prev-graph-1"></script>
+<script src="js/core/engine.js?v=prev-graph-1"></script>
 <!-- scenes (one file per chamber; a missing file falls back to a placeholder) -->
-<script src="js/data/case.js?v=4ed7371"></script>
-<script src="js/data/decisions.js?v=4ed7371"></script>
-<script src="js/core/draw.js?v=4ed7371"></script>
-<script src="js/scenes/00-case.js?v=4ed7371"></script>
-<script src="js/scenes/10-loop.js?v=4ed7371"></script>
-<script src="js/scenes/20-context.js?v=4ed7371"></script>
-<script src="js/scenes/30-tools.js?v=4ed7371"></script>
-<script src="js/scenes/31-registry.js?v=4ed7371"></script>
-<script src="js/scenes/32-observation.js?v=4ed7371"></script>
-<script src="js/scenes/40-state.js?v=4ed7371"></script>
-<script src="js/scenes/50-checks.js?v=4ed7371"></script>
-<script src="js/scenes/60-offline.js?v=4ed7371"></script>
+<script src="js/data/case.js?v=prev-graph-1"></script>
+<script src="js/data/decisions.js?v=prev-graph-1"></script>
+<script src="js/core/draw.js?v=prev-graph-1"></script>
+<script src="js/scenes/00-case.js?v=prev-graph-1"></script>
+<script src="js/scenes/10-loop.js?v=prev-graph-1"></script>
+<script src="js/scenes/20-context.js?v=prev-graph-1"></script>
+<script src="js/scenes/30-tools.js?v=prev-graph-1"></script>
+<script src="js/scenes/31-registry.js?v=prev-graph-1"></script>
+<script src="js/scenes/32-observation.js?v=prev-graph-1"></script>
+<script src="js/scenes/40-state.js?v=prev-graph-1"></script>
+<script src="js/scenes/50-checks.js?v=prev-graph-1"></script>
+<script src="js/scenes/60-offline.js?v=prev-graph-1"></script>
 <script>if (/[?&]smoke/.test(location.search)) document.write('<script src="tools/smoke.js"><\/script>');</script>
 </body>
 </html>

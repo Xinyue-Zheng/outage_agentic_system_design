@@ -46,46 +46,62 @@
     return S.statePanel;
   }
 
-  /* the orchestration graph: nodes keyed by name, links, and END pills */
+  /* the orchestration graph, drawn paper-style: one pipeline row, branch nodes directly under their source,
+   * return edges as nested orthogonal arcs underneath, no crossings. Nodes keyed by name in S.G. */
   function drawGraph(ctx, S) {
-    var W = 165, H = 46, R1 = 190, R2 = 300, R3 = 410;
+    var H = 44, W = 136, RA = 190, RB = 300;
     var g = ctx.group();
     S.G = {};
-    function node(name, x, y, sub, color, kind, w) {
-      S.G[name] = ctx.node({ x: x, y: y, w: w || W, h: H, title: name, sub: sub, color: color, kind: kind || 'box', titleSize: 12, subSize: 9.5, glow: false, parent: g });
+    function node(name, cx, cy, sub, color, kind, w) {
+      S.G[name] = ctx.node({ x: cx, y: cy, w: w || W, h: H, title: name, sub: sub, color: color, kind: kind || 'box', titleSize: 11.5, subSize: 9, glow: false, parent: g });
       return S.G[name];
     }
-    node('START', 95, R1, '', 'white', 'pill', 90);
-    node('initialize', 290, R1, 'cell lookup · task facts · State', 'magenta');
-    node('render_context', 480, R1, 'template over State', 'amber');
-    node('llm_call', 670, R1, 'action · parameters · gap', 'amber');
-    node('parse', 860, R1, 'strict · retry cap 3', 'magenta');
-    node('validate_action', 1050, R1, 'registry · State · preconditions', 'magenta');
-    node('END: retry cap', 670, R2, 'typed reason · person reviews', 'red', 'pill');
-    node('record_error_obs', 860, R2, 'which check failed and why', 'magenta');
-    node('completion_checks', 1050, R2, 'frontier · regions · labels · backup', 'pink');
-    node('END: complete', 1240, R2, 'report', 'red', 'pill', 130);
-    node('END: cap hit', 290, R3, 'typed reason · resume from Step', 'red', 'pill');
-    node('loop_guards', 480, R3, 'step · area budget · repeats', 'magenta');
-    node('write_step', 670, R3, 'pre/post State · input · output', 'teal');
-    node('update_state', 860, R3, 'facts + provenance · summaries', 'teal');
-    node('execute_query', 1050, R3, 'function · timeout · Observation', 'blue');
-    var G = S.G, L = {};
-    function lk(a, b, o) { o = o || {}; o.parent = g; o.sw = o.sw || 1.2; o.color = o.color || 'dim'; return ctx.link(G[a], G[b], o); }
-    L.s0 = lk('START', 'initialize'); L.s1 = lk('initialize', 'render_context'); L.s2 = lk('render_context', 'llm_call'); L.s3 = lk('llm_call', 'parse');
-    L.s4 = lk('parse', 'validate_action', { dash: '4 3', label: 'parsed', labelDy: -8 });
-    L.e1 = lk('parse', 'record_error_obs', { dash: '4 3', from: 'b', to: 't', color: 'red', label: 'does not parse', labelDx: 48 });
-    L.e2 = lk('validate_action', 'record_error_obs', { dash: '4 3', from: 'b', to: 'r', color: 'red', label: 'invalid', labelDx: 26, labelDy: -6 });
-    L.e3 = lk('record_error_obs', 'END: retry cap', { dash: '4 3', color: 'red', label: 'cap (3)', labelDy: -8 });
-    L.e4 = lk('record_error_obs', 'render_context', { dash: '4 3', from: 'b', to: 'b', bend: { x: 560, y: 352 }, color: 'red', label: 'retry: error observation into the next context', labelDy: 12 });
-    L.c1 = lk('validate_action', 'completion_checks', { dash: '4 3', from: 'b', to: 't', color: 'pink', label: 'finish request', labelDx: 52 });
-    L.c2 = lk('completion_checks', 'END: complete', { dash: '4 3', color: 'pink', label: 'met', labelDy: -8 });
-    L.c3 = lk('completion_checks', 'render_context', { dash: '4 3', from: 'b', to: 'b', bend: { x: 540, y: 372 }, color: 'pink', label: 'unmet: requirements written into State', labelDy: 12 });
-    L.q1 = lk('validate_action', 'execute_query', { dash: '4 3', from: 'r', to: 'r', bend: { x: 1165, y: 300 }, color: 'blue', label: 'query action', labelDx: 6 });
-    L.q2 = lk('execute_query', 'update_state', { label: 'Observation', labelDy: -8 }); L.q3 = lk('update_state', 'write_step'); L.q4 = lk('write_step', 'loop_guards');
-    L.n1 = lk('loop_guards', 'render_context', { from: 'l', to: 'l', bend: { x: 372, y: 300 }, color: 'magenta', label: 'next round', labelDx: -34 });
-    L.g1 = lk('loop_guards', 'END: cap hit', { dash: '4 3', color: 'red', label: 'cap hit', labelDy: -8 });
-    S.L = L; S.graph = g;
+    /* row A: the pipeline */
+    node('START', 65, RA, '', 'white', 'pill', 70);
+    node('initialize', 182, RA, 'task · lookup · State 0', 'magenta');
+    node('render_context', 332, RA, 'State → text', 'amber');
+    node('llm_call', 482, RA, 'action · params · gap', 'amber');
+    node('parse', 632, RA, 'strict · cap 3', 'magenta');
+    node('validate_action', 782, RA, 'registry · State', 'magenta');
+    node('execute_query', 932, RA, 'tool · timeout', 'blue');
+    node('update_state', 1082, RA, 'facts + provenance', 'teal');
+    node('write_step', 1232, RA, 'Step record', 'teal');
+    node('loop_guards', 1382, RA, 'caps · repeats', 'magenta');
+    node('END: cap hit', 1519, RA, '', 'red', 'pill', 110);
+    /* row B: branches, each under its source */
+    node('END: retry cap', 482, RB, '', 'red', 'pill');
+    node('record_error_obs', 632, RB, 'what failed, why', 'magenta');
+    node('completion_checks', 782, RB, 'four checks', 'pink');
+    node('END: complete', 919, RB, '', 'red', 'pill', 110);
+
+    function arrow(d, o) { o = o || {}; return ctx.path(d, { stroke: o.color || 'dim', sw: 1.3, dash: o.dash, arrow: true, parent: g }); }
+    function lbl(x, y, t, anchor, color) { return ctx.text(x, y, t, { size: 9.5, color: color || 'dim', anchor: anchor || 'middle', parent: g }); }
+    var yA = RA, yB = RB, top = RA - H / 2, bot = RA + H / 2, botB = RB + H / 2, topB = RB - H / 2;
+    /* row A, left to right */
+    arrow('M100,' + yA + ' L113,' + yA);
+    arrow('M250,' + yA + ' L263,' + yA);
+    arrow('M400,' + yA + ' L413,' + yA);
+    arrow('M550,' + yA + ' L563,' + yA);
+    arrow('M700,' + yA + ' L713,' + yA, { dash: '4 3' });
+    arrow('M850,' + yA + ' L863,' + yA, { dash: '4 3', color: 'blue' });
+    arrow('M1000,' + yA + ' L1013,' + yA);
+    arrow('M1150,' + yA + ' L1163,' + yA);
+    arrow('M1300,' + yA + ' L1313,' + yA);
+    arrow('M1450,' + yA + ' L1463,' + yA, { dash: '4 3', color: 'red' });
+    /* branches down */
+    arrow('M632,' + bot + ' L632,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(624, 250, 'does not parse', 'end', 'red');
+    arrow('M745,' + bot + ' L745,255 L668,255 L668,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(752, 238, 'invalid', 'start', 'red');
+    arrow('M800,' + bot + ' L800,' + (topB - 1), { dash: '4 3', color: 'pink' }); lbl(806, 250, 'finish request', 'start', 'pink');
+    arrow('M564,' + yB + ' L551,' + yB, { dash: '4 3', color: 'red' }); lbl(557, 288, 'cap (3)', 'middle', 'red');
+    arrow('M850,' + yB + ' L863,' + yB, { dash: '4 3', color: 'pink' }); lbl(857, 288, 'met', 'middle', 'pink');
+    /* return arcs, nested: shortest shallowest */
+    arrow('M632,' + botB + ' L632,360 L365,360 L365,' + (bot + 1), { dash: '4 3', color: 'red' }); lbl(498, 354, 'retry: error observation into the next context', 'middle', 'red');
+    arrow('M782,' + botB + ' L782,390 L330,390 L330,' + (bot + 1), { dash: '4 3', color: 'pink' }); lbl(556, 384, 'unmet: requirements written into State, rendered next round', 'middle', 'pink');
+    arrow('M1382,' + bot + ' L1382,420 L290,420 L290,' + (bot + 1), { color: 'magenta' }); lbl(836, 414, 'next round', 'middle', 'magenta');
+    /* legend */
+    lbl(1180, 300, 'solid: always · dashed: conditional · program nodes in colour, the model in orange', 'start');
+    S.graph = g;
+    var G = S.G;
     ctx.hotspot(G.render_context, 'context');
     ctx.hotspot(G.validate_action, 'checks');
     ctx.hotspot(G.execute_query, 'tools');
@@ -151,11 +167,11 @@
     },
     steps: [
       {
-        title: 'Initialization',
+        title: 'Start',
         beats: [
           {
-            say: 'The input is one down cell and one outage time. Nothing else is known about the impact yet. The program, not the model, starts the investigation by writing down what it already knows.',
-            card: { tag: 'KEY IDEA', title: 'Two facts start the run', body: 'Cell <code>D0</code> and the outage time. The program initializes the task; the model has not been called yet.' },
+            say: 'The run starts with one down cell and one outage time. Nothing else is known about the impact yet. The program, not the model, opens the investigation by writing down what it already knows.',
+            card: { tag: 'KEY IDEA', title: 'Two facts start the run', body: 'Cell <code>D0</code> and the outage time. The model has not been called yet; initialization comes next.' },
             deep: '<p>The run begins with a program-side phase. The task record holds the down cell id, the outage time and the objective. A cell lookup returns the cell\'s position and the settlement it sits in. These are facts the program knows for free and writes once, so the model never spends a step discovering them.</p>'
           },
           {
@@ -177,7 +193,7 @@
         run: function (ctx) {
           var S = ctx.state;
           clearPanels(ctx, S);
-          setActive(S, 'initialize');
+          setActive(S, 'START');
           S.grid.setClasses(CASE.states[0].classes);
           S.grid.outline(null);
           S.taskCard = ctx.code({ x: PX.decision[0], y: PX.decision[1], w: PX.decision[2], title: 'task', lang: 'text', size: 10.5, color: 'cyan', lines: [
@@ -187,6 +203,7 @@
           ] });
           S.decision = S.taskCard;
           return ctx.reveal(S.taskCard, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
+            setActive(S, 'initialize');
             S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
               ['settlements', 'S1, S2, S3'], ['highways (query by buffer)', 'H1 300 m, H2 500 m'], ['land use', 'F1, V1, F2'],
               ['cells', 'D0 down; B1, B2, B3'], ['resolvable references', '11'], ['spatial relations', CASE.relations.length]
