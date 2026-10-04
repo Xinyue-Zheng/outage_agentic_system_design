@@ -329,7 +329,7 @@
     }
     function expect(id, what) { if (!E.cur || E.cur.id !== id) errs.push({ scene: what, msg: 'expected scene ' + id + ' got ' + (E.cur && E.cur.id) }); }
     function last(id) { return (E.impl(id).steps || []).length - 1; }
-    var chain = Promise.resolve().then(function () { E.go('overview'); return settle('overview'); });
+    var chain = Promise.resolve().then(function () { E.go((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id)); return settle((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id)); });
     E.order.filter(function (m) { return m.parent; }).forEach(function (m) {
       chain = chain.then(function () {
         cur = 'nav:' + m.id;
@@ -372,7 +372,7 @@
       if (!E.refList.length) errs.push({ scene: 'refs', msg: 'no references indexed' });
       /* narration play / pause button, captions, zoom menu */
       cur = 'controls';
-      E.go('overview', { step: 1, transition: 'none' });
+      E.go((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), { step: 1, transition: 'none' });
       return sleep(300).then(function () {
         N.speak = realSpeak; N.enabled = false; N.rate = 0.6;     /* real narrator, muted reading clock */
         E.setMode('auto');
@@ -404,7 +404,7 @@
           if (E.cur.pending) errs.push({ scene: cur, msg: 'Next did not start the waiting topic' });
           if (E.cur.beatIdx !== 0) errs.push({ scene: cur, msg: 'first beat did not start' });
           E.setMode('auto');
-          E.go('overview', { transition: 'none' });
+          E.go((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), { transition: 'none' });
           return sleep(500);
         }).then(function () {
           if (!E.cur || E.cur.pending) errs.push({ scene: cur, msg: 'Auto mode must start new topics by itself' });
@@ -421,7 +421,7 @@
           document.getElementById('btn-up').click();
           return sleep(1000);
         }).then(function () {
-          if (!E.cur || E.cur.id !== 'overview') errs.push({ scene: cur, msg: 'Back did not return to the parent (got ' + (E.cur && E.cur.id) + ')' });
+          if (!E.cur || E.cur.id !== (ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id)) errs.push({ scene: cur, msg: 'Back did not return to the parent (got ' + (E.cur && E.cur.id) + ')' });
           /* home shows the start page and can resume */
           E.home();
           var intro = document.getElementById('intro');
@@ -440,10 +440,10 @@
           var prog = document.getElementById('prog');
           if (prog.classList.contains('hidden')) errs.push({ scene: cur, msg: 'progress panel did not open' });
           if (document.querySelectorAll('#prog-tree .pc').length < 10) errs.push({ scene: cur, msg: 'progress tree is too short' });
-          E.setLearned('overview', 0, true);
+          E.setLearned((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), 0, true);
           if (!E.progress.l['overview/0']) errs.push({ scene: cur, msg: 'learned mark not stored' });
           if (E.progress.p['overview/0'] === E.progress.l['overview/0'] && E.progress.p['overview/0'] === 1) { /* same object is fine; the maps are separate */ }
-          E.setLearned('overview', 0, false);
+          E.setLearned((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), 0, false);
           E.jumpTo('llm', 1);
           return sleep(1000);
         }).then(function () {
@@ -452,7 +452,7 @@
           /* saved position: leave a chamber mid-way, come back, land in the same picture; Start over resets */
           cur = 'restore';
           E._forceFresh = false; E._forceAutoStart = false; E.setMode('topic');
-          E.go('overview', { step: 3, transition: 'none' });
+          E.go((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), { step: 3, transition: 'none' });
           return sleep(700);
         }).then(function () {
           E.next(); return sleep(300);            /* start the waiting topic: point 1 */
@@ -468,7 +468,7 @@
           return sleep(1600);
         }).then(function () {
           var c2 = E.cur;
-          if (!c2 || c2.id !== 'overview') { errs.push({ scene: cur, msg: 'Back did not return to overview' }); return; }
+          if (!c2 || c2.id !== (ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id)) { errs.push({ scene: cur, msg: 'Back did not return to overview' }); return; }
           if (c2.step !== 3 || c2.beatIdx !== 1) errs.push({ scene: cur, msg: 'returned to step ' + c2.step + ' point ' + c2.beatIdx + ', expected step 3 point 1' });
           if (c2.pending) errs.push({ scene: cur, msg: 'returning should restore the picture, not wait at the start' });
           if (!document.querySelectorAll('#card-new .card, #hist-list .card').length) errs.push({ scene: cur, msg: 'restored page lost its callout cards' });
@@ -901,7 +901,7 @@
     var $ = function (s) { return document.querySelector(s); };
     var hidden = 0, tall = 0;
     var rows = [], total = 0, cardScroll = 0, narrScroll = 0, histOpen = 0, overlaps = 0, moreTall = 0, maxCard = 0, maxNarr = 0;
-    var chain = Promise.resolve().then(function () { E.go('overview', { step: 0, transition: 'none' }); return sleep(800); });
+    var chain = Promise.resolve().then(function () { E.go((ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0].id), { step: 0, transition: 'none' }); return sleep(800); });
     E.order.forEach(function (m) {
       chain = chain.then(function () {
         cur = 'cards:' + m.id;

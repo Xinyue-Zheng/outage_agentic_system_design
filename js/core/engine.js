@@ -7,6 +7,8 @@
   var W = X.W, H = X.H, C = X.C;
   var N = window.AtlasNarrator;
   var R = window.AtlasRefs;
+  /* the root chamber is the catalog entry without a parent */
+  var ROOT_ID = (window.ATLAS_CATALOG.filter(function (m) { return !m.parent; })[0] || {}).id;
 
   function $(s) { return document.querySelector(s); }
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
@@ -55,7 +57,7 @@
   /* ---------------- registry ---------------- */
   Engine.register = function (def) {
     if (!def || !def.id) { console.error('Atlas.register: missing id'); return; }
-    if (!Engine.catalog[def.id]) console.warn('Atlas.register: scene not in catalog:', def.id);
+    if (Engine.order.length && !Engine.catalog[def.id]) console.warn('Atlas.register: scene not in catalog:', def.id);
     Engine.scenes[def.id] = def;
   };
 
@@ -71,7 +73,7 @@
       Engine.order.push(m);
     });
     var dfs = [];
-    (function walk(id) { dfs.push(id); Engine.children(id).forEach(function (c) { walk(c.id); }); })('overview');
+    (function walk(id) { dfs.push(id); Engine.children(id).forEach(function (c) { walk(c.id); }); })(ROOT_ID);
     Engine.dfs = dfs;
     window.ATLAS_TOURS.deep = dfs;
   }
@@ -189,7 +191,7 @@
   /* opts: { step (0-based), beat, transition: 'zoomIn'|'zoomOut'|'fade'|'none', box: {x,y,w,h} } */
   Engine.go = function (id, opts) {
     opts = opts || {};
-    if (!Engine.meta(id)) id = 'overview';
+    if (!Engine.meta(id)) id = ROOT_ID;
     if (Engine._busy) { Engine._queued = [id, opts]; return Promise.resolve(); }
     Engine._busy = true;
     stopAll();
@@ -554,7 +556,7 @@
         parentEl.appendChild(kw);
       }
     }
-    addChamber(Engine.meta('overview'), tree);
+    addChamber(Engine.meta(ROOT_ID), tree);
     sc.scrollTop = top;
   }
 
@@ -1532,7 +1534,7 @@
     if (!grid) return;
     var q = ($('#map-filter').value || '').toLowerCase();
     grid.innerHTML = '';
-    var root = Engine.meta('overview');
+    var root = Engine.meta(ROOT_ID);
     var curId = Engine.cur && Engine.cur.id;
     function chip(m, cls) {
       /* the same two facts the Progress panel shows: steps played (ring + first number) and steps learned (green) */
@@ -1551,7 +1553,7 @@
     head.appendChild(chip(root, 'big'));
     head.appendChild(h('p', '', esc(root.summary)));
     grid.appendChild(head);
-    Engine.children('overview').forEach(function (m) {
+    Engine.children(ROOT_ID).forEach(function (m) {
       var card = h('div', 'mcard');
       card.style.setProperty('--c', m.colorHex);
       card.appendChild(chip(m, 'l1'));
@@ -1889,9 +1891,9 @@
     function start(fn) { $('#intro').classList.add('hidden'); fn(); }
     $('#intro-resume').onclick = function () { if (Engine.cur) leaveHome(); else start(function () { Engine.go(Engine._last); }); };
     $('#intro-resume').style.display = Engine._last && Engine.meta(Engine._last) ? '' : 'none';
-    $('#intro-go').onclick = function () { start(function () { var r = readHash(); Engine.go(r ? r.id : 'overview', { step: r ? r.step : 0 }); }); };
+    $('#intro-go').onclick = function () { start(function () { var r = readHash(); Engine.go(r ? r.id : ROOT_ID, { step: r ? r.step : 0 }); }); };
     $('#intro-tour').onclick = function () { start(function () { Engine.startTour('bigpicture'); }); };
-    $('#intro-map').onclick = function () { start(function () { Engine.go('overview').then(function () { openMap(); }); }); };
+    $('#intro-map').onclick = function () { start(function () { Engine.go(ROOT_ID).then(function () { openMap(); }); }); };
     $('#start-btn').onclick = function () { Engine.startPending(); };
   };
 
