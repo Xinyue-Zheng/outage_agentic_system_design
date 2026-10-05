@@ -6,7 +6,7 @@ The app is static. Open `index.html` in Chrome or Edge. No build step, no server
 
 ## What it shows
 
-Eight chambers in two levels:
+Seven chambers in two levels:
 
 ```
 L0  case         Outage Case, End to End        10 steps  Start, Action 1 to 8, End of the run
@@ -15,8 +15,7 @@ L0  case         Outage Case, End to End        10 steps  Start, Action 1 to 8, 
 ├─ L1 decision   Decision Core                   5 steps  the model proposes, parse, validate, verifier, finish and completion
 ├─ L1 tools      Tool Registry                   3 steps  one table of actions, where actions run, from decision to Observation
 ├─ L1 state      State and Trace                 2 steps  what State holds; State, Step, Trace and checkpoint
-├─ L1 caps       Run Caps                        2 steps  checked every round, typed ends
-└─ L1 offline    Offline Evaluation              4 steps  metrics, baseline, localization, recovery
+└─ L1 caps       Run Caps                        2 steps  checked every round, typed ends
 ```
 
 Every step is cut into points. For each point the page changes four things together: the diagram on the stage, the text in the left box, a callout card below it, and a deep-dive block on the right. Components with a dashed ring and a plus badge open their own chamber. Back zooms out. A system map lists every chamber.

@@ -78,7 +78,6 @@
     node('verifier', 782, RB, 'agree · concern', 'amber');
     /* row C */
     node('completion_checks', 782, RC, 'four rules', 'pink');
-    node('END: complete', 919, RC, '', 'red', 'pill', 110);
 
     function arrow(d, o) { o = o || {}; return ctx.path(d, { stroke: o.color || 'dim', sw: 1.3, dash: o.dash, arrow: true, parent: g }); }
     function lbl(x, y, t, anchor, color) { return ctx.text(x, y, t, { size: 10, color: color || 'dim', anchor: anchor || 'middle', parent: g }); }
@@ -102,7 +101,6 @@
     arrow('M850,' + (yB - 8) + ' L932,' + (yB - 8) + ' L932,' + (bot + 1), { dash: '4 3', color: 'blue' }); lbl(891, 242, 'query', 'middle', 'blue');
     arrow('M782,' + botB + ' L782,' + (topC - 1), { dash: '4 3', color: 'pink' }); lbl(788, 310, 'finish', 'start', 'pink');
     lbl(850, yB + 14, 'concern → fact in State', 'start', 'amber');
-    arrow('M850,' + yC + ' L863,' + yC, { dash: '4 3', color: 'pink' }); lbl(857, 334, 'met', 'middle', 'pink');
     /* return arcs, nested */
     arrow('M632,' + botB + ' L632,392 L365,392 L365,' + (bot + 1), { dash: '4 3', color: 'red' }); lbl(498, 386, 'retry: the error becomes an observation', 'middle', 'red');
     arrow('M782,' + botC + ' L782,412 L330,412 L330,' + (bot + 1), { dash: '4 3', color: 'pink' }); lbl(556, 406, 'unmet: requirements written into State', 'middle', 'pink');
@@ -122,7 +120,6 @@
     ctx.hotspot(G.execute_query, 'tools');
     ctx.hotspot(G.update_state, 'state');
     ctx.hotspot(G.loop_guards, 'caps');
-    ctx.hotspot(G['END: complete'], 'offline');
   }
 
   /* segments of one recorded query step; the gates live in the step's run() */
@@ -490,9 +487,9 @@
             deep: '<p>Step records link files by path. Because every State is a complete snapshot, a Step already holds the before and after state of one decision. Adding the serialized State, the data version and the counters to the Step makes it a checkpoint from which a run can be resumed.</p>'
           },
           {
-            say: 'Each ringed node in the graph opens its own chamber: the context builder, tool management, state and trace, validation and completion, the loop itself, and offline evaluation.',
+            say: 'Each ringed component in the graph opens its own chamber: initialization, the context builder, the decision core, the tool registry, state and trace, and the run caps.',
             card: { tag: 'TRY IT', title: 'Zoom into a module', body: 'Click a ringed node in the graph, or press Z for the list. Each chamber explains one module with the numbers from this run.' },
-            deep: '<p>The seven chambers follow the functional modules of the design. The decision core groups the model call, parsing, validation, the verifier and the completion checks, because together they turn a model output into either an executed action or feedback.</p>'
+            deep: '<p>The six chambers follow the functional modules of the design. The decision core groups the model call, parsing, validation, the verifier and the completion checks, because together they turn a model output into either an executed action or feedback.</p>'
           }
         ],
         run: function (ctx) {

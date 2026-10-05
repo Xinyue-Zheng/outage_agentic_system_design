@@ -103,12 +103,7 @@
           {
             say: 'Every call ends in one Observation of the same shape, whatever the action: a status for the whole result, and a row per location that is either valid or missing.',
             card: { tag: 'KEY IDEA', title: 'Every call ends in an Observation', body: 'Even a timeout or an empty answer. The next decision always has a result to read, and State records which call produced each fact.' },
-            deep: '<p>The raw records stay on disk; State keeps the link. The program parses rows into the fixed shape once, here.</p>'
-          },
-          {
-            say: 'Missing data is not no coverage. A valid row with an empty cell list means no coverage. An absent row means missing data. The two are told apart here and never mixed again.',
-            card: { tag: 'PITFALL', title: 'Missing is not empty', body: 'Empty cell list: evidence of no coverage. No row: no evidence. State keeps them apart from here on.' },
-            deep: '<p>Both the context and the completion checks depend on this distinction. An area with many missing rows stays partly unknown even after it was queried.</p>'
+            deep: '<p>The raw records stay on disk; State keeps the link. The program parses rows into the fixed shape once, here. A valid row with an empty cell list means no coverage; an absent row means missing data, and the two stay apart.</p>'
           }
         ],
         run: function (ctx) {
@@ -124,9 +119,6 @@
           return ctx.reveal([S.reg2].concat(S.stages, S.slinks, S.feed), { from: 'fade' }).then(function () { return ctx.beat(1); }).then(function () {
             S.obs = D.kv(ctx, 420, 400, 760, [['which action, which parameters, when', ''], ['status of the whole result', 'ok · empty · missing · error · timeout'], ['one row per location', 'valid, or missing'], ['raw records', 'kept on disk; State keeps the link']], { title: 'one Observation, the same shape for every action', color: 'teal' });
             return ctx.reveal(S.obs.g, { from: 'up' });
-          }).then(function () { return ctx.beat(2); }).then(function () {
-            S.notes = D.kv(ctx, 420, 600, 760, [['valid row, empty cell list', 'no coverage: evidence'], ['no row', 'missing data: no evidence']], { title: 'missing is not empty', color: 'red' });
-            return ctx.reveal(S.notes.g, { from: 'up' });
           });
         }
       }

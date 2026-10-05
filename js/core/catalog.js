@@ -23,14 +23,11 @@ window.ATLAS_CATALOG = [
     summary: 'What State holds, how one observation updates it, and how State, Step, Trace and checkpoint relate.' },
   { id: 'caps', parent: 'case', level: 1, file: '55-caps.js', color: 'magenta',
     title: 'Run Caps', kicker: 'Bounded cost, typed ends',
-    summary: 'Step cap, query budget in area, wall time and repeated-query detection, checked every round; and what a typed end reason means.' },
-  { id: 'offline', parent: 'case', level: 1, file: '60-offline.js', color: 'lime',
-    title: 'Offline Evaluation', kicker: 'From trace to evidence',
-    summary: 'How recorded traces become metrics, error localization, recovery experiments and the baseline comparison against a general coding agent.' }
+    summary: 'Step cap, query budget in area, wall time and repeated-query detection, checked every round; and what a typed end reason means.' }
 ];
 
 /* Main tour: the case, then the modules in loop order. The full tour is computed depth-first by the engine. */
 window.ATLAS_TOURS = {
-  bigpicture: ['case', 'init', 'context', 'decision', 'tools', 'state', 'caps', 'offline'],
+  bigpicture: ['case', 'init', 'context', 'decision', 'tools', 'state', 'caps'],
   deep: null
 };

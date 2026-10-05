@@ -21,5 +21,5 @@ window.ATLAS_GLOSSARY = [
   { t: 'provenance', re: 'provenance', d: 'For every fact in State, the observation that produced it. Lets the program check that a conclusion cites only facts that exist.', s: 'state' },
   { t: 'stable prefix', re: 'stable prefix', d: 'The part of the rendered context that does not change between steps: skill, task, geography, relations and action schemas. It can be cached by the model provider.', s: 'context' },
   { t: 'append-only transcript', re: 'append-only transcript|append-only history', d: 'How Codex CLI and Gemini CLI feed the model: every tool output is appended and resent each call, compacted by the model when the window fills.', s: 'context' },
-  { t: 'baseline', re: 'baseline', d: 'Codex CLI with the same query functions exposed through an MCP server and the skill as AGENTS.md, run on the same cases. The measurement that answers "why not just use Codex".', s: 'offline' }
+  { t: 'baseline', re: 'baseline', d: 'Codex CLI with the same query functions exposed through an MCP server and the skill as AGENTS.md, run on the same cases. The measurement that answers "why not just use Codex".', s: 'state' }
 ];

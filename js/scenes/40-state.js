@@ -14,7 +14,7 @@
         beats: [
           {
             say: 'State is every fact the investigation has established at one moment, with the observation that produced each fact. It is rewritten as a new snapshot after every action.',
-            card: { tag: 'KEY IDEA', title: 'Facts with their source', body: 'Task and time · areas and relations · coverage per location · summaries per area and the query boundary · impact · unknowns · provenance.' },
+            card: { tag: 'KEY IDEA', title: 'Facts with their source', body: 'Task and time · areas and relations · coverage per location · summaries per area and the query boundary · impact · what is still unknown · the source of each fact.' },
             deep: '<p>Each snapshot is complete and immutable. Nothing from a later action changes an earlier snapshot.</p>'
           },
           {
@@ -33,7 +33,7 @@
           S.grid = D.grid(ctx, GRID);
           S.grid.setClasses(CASE.states[4].classes);
           S.grid.legendRow(900, 600, false);
-          var secs = ['task and time', 'areas and relations', 'coverage per location', 'summaries per area · query boundary', 'impact, when computed', 'unknowns', 'provenance'];
+          var secs = ['task and time', 'areas and relations', 'coverage per location', 'summaries per area · query boundary', 'impact, when computed', 'what is still unknown', 'source of each fact'];
           S.secs = secs.map(function (t, i) { return ctx.node({ x: 440, y: 170 + i * 62, w: 740, h: 46, title: t, color: 'teal', kind: 'pill', titleSize: 14, glow: false }); });
           return ctx.reveal(S.secs.concat([S.grid.g]), { from: 'fade', stagger: 40 }).then(function () { return ctx.beat(1); }).then(function () {
             S.secs.forEach(function (n, i) { n.setAttribute('opacity', i === 2 ? 1 : 0.35); });
