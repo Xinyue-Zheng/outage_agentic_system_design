@@ -34,7 +34,7 @@
   }
 
   function clearPanels(ctx, S) {
-    ['decision', 'obsPanel', 'statePanel', 'ctxBlock', 'frame'].forEach(function (k) {
+    ['decision', 'obsPanel', 'statePanel', 'guardPanel', 'ctxBlock', 'frame'].forEach(function (k) {
       if (S[k]) { ctx.remove(S[k].g || S[k], 0); S[k] = null; }
     });
   }
@@ -123,6 +123,19 @@
   }
 
   /* segments of one recorded query step; the gates live in the step's run() */
+
+  function guardPanel(ctx, S, i) {
+    var sa = D.region(i, 'Study_area'), step = CASE.steps[i - 1];
+    var repeat = i === 7 ? 'action 7 = action 4 → live run: END repeated_query' : 'none';
+    S.guardPanel = D.kv(ctx, PX.ctx[0], PX.ctx[1], PX.ctx[2], [
+      ['write_step', step.id + ' · ' + step.state_before + ' → ' + step.state_after + ' · decision, observation, both States'],
+      ['loop_guards · step cap', i + ' of 8 (no cap set in the recorded run)'],
+      ['loop_guards · area budget', D.fmt(sa.queried) + ' of ' + D.fmt(sa.total) + ' locations queried'],
+      ['loop_guards · repeated query', repeat]
+    ], { title: 'record the Step, then check the caps', color: 'magenta' });
+    return S.guardPanel;
+  }
+
   function Q(ctx, i) {
     var S = ctx.state, step = CASE.steps[i - 1], o = step.observation, ref = step.action.reference_id;
     return {
@@ -151,7 +164,13 @@
         statePanel(ctx, S, i);
         return ctx.reveal(S.statePanel.g, { from: 'up' });
       },
+      record: function () {
+        setActive(S, 'write_step');
+        guardPanel(ctx, S, i);
+        return ctx.reveal(S.guardPanel.g, { from: 'up' }).then(function () { return ctx.wait(500); }).then(function () { setActive(S, 'loop_guards'); return ctx.pulse(S.G.loop_guards, { color: 'magenta', times: 1, dur: 600 }); });
+      },
       render: function () {
+        if (S.guardPanel) { ctx.remove(S.guardPanel.g, 0); S.guardPanel = null; }
         setActive(S, 'render_context');
         S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context ' + CASE.states[i].id + ' · lines about ' + ref, lang: 'text', size: 12, color: 'amber', maxLines: 4, lines: contextLines(i, ref, 4) });
         return ctx.reveal(S.ctxBlock, { from: 'up' });
@@ -251,12 +270,17 @@
             deep: '<p>The region summary for every reference is recomputed from the union of all executed observations, deduplicated by grid id. For the study area after step 1: 36 queried, 35 valid, 1 missing, 33 with D0, 20 boundary locations of which 19 show D0. Strong D0 at the edge of the queried area means the area is probably too small; a completion check reads this number.</p>'
           },
           {
+            say: 'The Step is written: the decision, observation one, and State zero and State one. Loop guards compare the counters with the caps: one step, thirty six locations queried, no repeated query. The next round can start.',
+            card: { tag: 'HOW IT WORKS', title: 'Record, then guard', body: 'write_step stores the decision, the observation and both States. loop_guards checks the step cap, the area budget, wall time and repeats. All clear: next round.' },
+            deep: '<p>Neither node decides anything about the investigation. The Step is the unit the Trace and the checkpoint are built from. The guards are counters compared with numbers; no cap is set in the recorded run, so every round passes.</p>'
+          },
+          {
             say: 'The context for the next decision is rendered again from the new State. The lines about S1 now carry the counts. The whole text grew by about five hundred tokens, not by the twelve kilobytes of the raw result.',
             card: { tag: 'NUMBERS', title: 'Rendering, not appending', stat: { v: '2,687', u: 'tokens', l: 'context after step 1; the raw observation (12 KB) is not in it' } },
             deep: '<p>In an append-only harness the 12 KB result would be added to the transcript and resent on every later call. Here the program computed the counts and wrote four lines. The model will see progress, coverage, boundary and unknowns for S1, and a provenance line that names <code>obs_01</code>.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 1); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 1); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 2: H1 corridor',
@@ -277,12 +301,17 @@
             deep: '<p>Study area after step 2: 106 queried, 77 with D0, boundary 52 with D0 at 37. Overlaps are deduplicated: the H1 corridor shares locations with S1, and a location counts once. Counts are reported per reference and the context says they must not be added together.</p>'
           },
           {
+            say: 'Step two is written and the guards run again: two steps, one hundred six locations queried, no repeat. Next round.',
+            card: { tag: 'HOW IT WORKS', title: 'Counters, not judgment', body: 'Two steps, 106 locations, no repeated query. The guards never read the model\'s text.' },
+            deep: '<p>The area budget is counted in distinct queried locations, so the overlap between S1 and the H1 corridor is not charged twice.</p>'
+          },
+          {
             say: 'The rendered context now has lines for both S1 and the H1 corridor. It is still under three thousand tokens.',
             card: { tag: 'NUMBERS', title: 'Context after step 2', stat: { v: '2,747', u: 'tokens', l: 'raw observations so far: 41 KB, about 10,300 tokens if they had been appended' } },
             deep: '<p>The size of the rendering depends on how many references have been touched, not on how many steps have run. Two steps in, the append-only alternative would already be four times larger than the whole rendering.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 2); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 2); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 3: H2 corridor',
@@ -303,12 +332,17 @@
             deep: '<p>Study area after step 3: 272 queried, 222 with D0, 7 with no coverage, 41 other cells only, 2 missing. The S2 summary drives the next two decisions: part of S2 is known, the interior is not, and the boundary shows D0.</p>'
           },
           {
+            say: 'Step three is written. The guards see three steps and two hundred seventy two locations queried, the largest jump of the run, and let the next round start.',
+            card: { tag: 'NUMBERS', title: 'Area budget after three steps', body: '272 of 2,400 locations queried in three rounds. A call count would say three; the budget says 272.' },
+            deep: '<p>This is why the budget is in area: one corridor query cost 192 locations, five times the S1 query, for the same single call.</p>'
+          },
+          {
             say: 'The context lines for S2 appear although S2 was never named in a query. This is the point of computing summaries per reference from all evidence.',
             card: { tag: 'NUMBERS', title: 'Context after step 3', stat: { v: '2,917', u: 'tokens', l: 'raw observations so far: 128 KB, about 32,000 tokens' } },
             deep: '<p>The append-only alternative is now more than ten times the rendering, and the model in that design would have to find the S2 overlap by reading two corridor results itself.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 3); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 3); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 4: S2 roadside',
@@ -329,12 +363,17 @@
             deep: '<p>S2 after step 4: 40 queried of 200, 20 with D0, boundary 8 with D0 at 4, no missing. The study area boundary is 119 with D0 at 92. A completion check on "boundary still shows the down cell" would reject a stop here, and it should.</p>'
           },
           {
+            say: 'Step four is written. Four steps, two hundred seventy six locations, no repeat. The forty roadside locations overlapped the corridor almost entirely, so the budget barely moved.',
+            card: { tag: 'NUMBERS', title: 'Four locations of new area', body: 'The S2 roadside query added 4 distinct locations to the budget; the rest were already queried by the H2 corridor.' },
+            deep: '<p>The Step still records the full observation of 40 records; deduplication applies to the budget and the summaries, not to the trace.</p>'
+          },
+          {
             say: 'The rendered context says it directly: along the query boundary facing the unqueried interior, D0 is present at four of eight boundary locations. Coverage in the unqueried interior remains unknown.',
             card: { tag: 'HOW IT WORKS', title: 'Facts, not raw rows', body: 'The model reads one sentence about the boundary. The 17 KB of records that produced it stay in <code>obs_04.json</code>.' },
             deep: '<p>Context after step 4 is 2,895 tokens, slightly smaller than after step 3 because some unknowns were resolved. The lines about <code>S2_roadside</code> and the updated lines about <code>S2</code> are the whole change the model sees.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 4); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 4); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 5: S2 interior',
@@ -355,12 +394,17 @@
             deep: '<p>Study area after step 5: 436 queried, 252 with D0, 158 other cells only, 15 no coverage, 11 missing. The boundary is 158 with D0 at 99, now mostly along the corridors toward the farmland, vineyard and forest, which have no coverage data at all.</p>'
           },
           {
+            say: 'Step five is written. Five steps, four hundred thirty six locations queried. The guards pass and the next round starts.',
+            card: { tag: 'HOW IT WORKS', title: 'The Step is the checkpoint unit', body: 'Step 5 holds State 4 and State 5. A resume from here would load State 5, correct it, and re-run from step 6.' },
+            deep: '<p>The checkpoint adds what a restart needs to the Step: the full State, the counters shown here, the data version, the query cache and the registry version.</p>'
+          },
+          {
             say: 'The context for S2 changes from a boundary sentence to a closure sentence. The model is told that no interior boundary exists in this reference.',
             card: { tag: 'NUMBERS', title: 'Context after step 5', stat: { v: '3,006', u: 'tokens', l: 'raw observations so far: 203 KB, about 50,700 tokens' } },
             deep: '<p>The rendering crosses 3,000 tokens for the first time. The growth comes from more references having content, not from history. An appended transcript would be seventeen times larger at this point.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 5); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 5); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 6: S3',
@@ -381,12 +425,17 @@
             deep: '<p>Study area after step 6: 466 queried, 252 with D0, 186 other only, 15 no coverage, 13 missing, boundary 168 with D0 at 99. Every settlement is closed; the corridors end at unqueried land. A completion check would still find the down cell on the boundary.</p>'
           },
           {
+            say: 'Step six is written. Six steps, four hundred sixty six locations. No cap is hit; the next round starts.',
+            card: { tag: 'HOW IT WORKS', title: 'Every settlement closed, guards still pass', body: 'Caps are about cost, not about completion. Whether the investigation is finished is the completion checks\' question, not the guards\'.' },
+            deep: '<p>Ended by a cap and finished by the checks are different outcomes with different typed reasons, so the trace never confuses them.</p>'
+          },
+          {
             say: 'The S3 lines in the context now read: D0 is present at zero of the forty eight queried locations. The unknowns list shrinks for S3 and keeps the three rural references.',
             card: { tag: 'NUMBERS', title: 'Context after step 6', stat: { v: '3,020', u: 'tokens', l: 'raw observations so far: 215 KB, about 53,800 tokens' } },
             deep: '<p>The three rural references still appear in progress as zero queried and in the unknowns as 240, 247 and 240 unknown locations. The model is told what it does not know.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 6); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 6); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 7: a repeated query',
@@ -407,12 +456,17 @@
             deep: '<p>The current fact for a location comes from the latest evidence, and older evidence is kept but not used. This is the state-sync rule of the design applied to analysis.</p>'
           },
           {
+            say: 'Step seven is written. Then loop guards find the same action and the same parameters as action four. In a live run this ends the run with the reason repeated query. In the recorded run it is allowed through.',
+            card: { tag: 'PITFALL', title: 'The guard would stop here', body: 'hash(coverage.query, S2_roadside) was seen at action 4. A second identical query ends a live run with END: repeated query.' },
+            deep: '<p>The detector hashes the action name and its parameters after validation. A repeat is legal for the registry; stopping on it is a policy in loop guards, recorded as its own end reason, and a person reviews the trace.</p>'
+          },
+          {
             say: 'The rendered context changes in one place: the provenance list gains obs seven. A step history, which the current rendering does not have, would make the repeat visible to the model itself.',
             card: { tag: 'TRADE-OFF', title: 'The model cannot see its own repeat', body: 'Only the provenance list shows two S2_roadside observations. A short step history in the context lets the model see it.' },
             deep: '<p>Context after step 7: 3,041 tokens. Adding the last few steps as action, gap and one-line outcome would let the model notice the repetition without a program guard, at a cost of a few hundred tokens. This is one of the context conditions in the evaluation.</p>'
           }
         ],
-        run: function (ctx) { var q = Q(ctx, 7); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
+        run: function (ctx) { var q = Q(ctx, 7); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.record).then(function () { return ctx.beat(4); }).then(q.render); }
       },
       {
         title: 'Action 8: backup and load',
@@ -431,6 +485,11 @@
             say: 'Load is estimated with a stated formula: baseline PRB plus one hundred times transferred traffic over capacity. B1 and B2 exceed one hundred percent and are flagged, not clamped.',
             card: { tag: 'NUMBERS', title: 'Two backups overload', stat: { v: '242 % · 185 %', l: 'estimated PRB for B1 and B2; B3 at 64 percent. Above 100 is flagged as potential overload' } },
             deep: '<p>B1: baseline 52 percent, capacity 70 Mbps, plus 133 Mbps transferred gives 242 percent. B2: 68 percent, 80 Mbps, plus 94 Mbps gives 185 percent. B3: 43 percent, 65 Mbps, plus 13 Mbps gives 64 percent. The formula uses PRB baseline and capacity only. Before writing the result into State the program recomputes it from the current evidence and rejects a stale estimate.</p>'
+          },
+          {
+            say: 'The Step for the impact estimate is written. Loop guards: eight steps, four hundred sixty six locations, no repeat. The caps pass; the script ends after this round.',
+            card: { tag: 'HOW IT WORKS', title: 'Last Step of the run', body: 'Step 8 holds State 7, the impact decision, the impact file and State 8. The guards pass; what ends the recorded run is the script, not a cap.' },
+            deep: '<p>A live run would continue to the next round, where the model could propose finish and the completion checks would answer. The End step shows what they would say.</p>'
           },
           {
             say: 'The context gains an impact section with scope, exclusions, thresholds, the formula and one line per backup, followed by eight stated limitations. It is now about thirty five hundred tokens.',
@@ -465,6 +524,11 @@
             }).concat([['formula', 'base + 100 · transferred / capacity'], ['rendered context', tok(CASE.states[i].context_bytes)]]), { title: 'State state_08 · backup loads', color: 'teal' });
             return ctx.reveal(S.statePanel.g, { from: 'up' });
           }).then(function () { return ctx.beat(3); }).then(function () {
+            setActive(S, 'write_step');
+            guardPanel(ctx, S, i);
+            return ctx.reveal(S.guardPanel.g, { from: 'up' }).then(function () { return ctx.wait(500); }).then(function () { setActive(S, 'loop_guards'); return ctx.pulse(S.G.loop_guards, { color: 'magenta', times: 1, dur: 600 }); });
+          }).then(function () { return ctx.beat(4); }).then(function () {
+            if (S.guardPanel) { ctx.remove(S.guardPanel.g, 0); S.guardPanel = null; }
             setActive(S, 'render_context');
             var lines = CASE.states[i].context.split('\n');
             var k = 0; for (var j = 0; j < lines.length; j++) if (lines[j].indexOf('Impact and backup analysis:') === 0) { k = j; break; }
