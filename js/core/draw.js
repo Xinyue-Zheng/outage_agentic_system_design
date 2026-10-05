@@ -91,7 +91,7 @@
         var cx = x;
         items.forEach(function (it) {
           ctx.rect(cx, y - 6, 12, 12, { fill: it[0], stroke: 'line', sw: 0.8, parent: lg });
-          ctx.text(cx + 18, y, it[1], { size: 10.5, color: 'dim', parent: lg });
+          ctx.text(cx + 18, y, it[1], { size: 12, color: 'dim', parent: lg });
           cx += 18 + it[1].length * 6.4 + 22;
         });
         return lg;
@@ -149,13 +149,13 @@
   function kv(ctx, x, y, w, rows, o) {
     o = o || {};
     var g = ctx.group({ parent: o.parent });
-    var lh = o.lh || 22, size = o.size || 12;
-    var h = (o.title ? 30 : 10) + rows.length * lh + 6;
+    var lh = o.lh || 27, size = o.size || 13.5;
+    var h = (o.title ? 32 : 10) + rows.length * lh + 6;
     ctx.rect(x, y, w, h, { rx: 8, fill: 'rgba(6,12,24,0.9)', stroke: ctx.alpha(o.color || 'cyan', 0.5), sw: 1.1, parent: g });
-    if (o.title) ctx.text(x + 12, y + 17, o.title, { size: 12.5, weight: 700, color: o.color || 'cyan', parent: g });
+    if (o.title) ctx.text(x + 12, y + 18, o.title, { size: 14, weight: 700, color: o.color || 'cyan', parent: g });
     var vals = [];
     rows.forEach(function (r, i) {
-      var yy = y + (o.title ? 30 : 10) + i * lh + lh / 2;
+      var yy = y + (o.title ? 32 : 10) + i * lh + lh / 2;
       ctx.text(x + 12, yy, r[0], { size: size, color: 'dim', parent: g });
       vals.push(ctx.text(x + w - 12, yy, String(r[1]), { size: size, color: 'text', anchor: 'end', font: 'mono', parent: g }));
     });
@@ -167,8 +167,8 @@
     o = o || {};
     var g = ctx.group({ parent: o.parent });
     var lines = ['action:     ' + d.action, 'parameters: ' + d.parameters];
-    var gapLines = wrap('gap: ' + d.gap, Math.floor(w / 8.2));
-    var code = ctx.code({ x: x, y: y, w: w, title: o.title || 'model output (illustrative)', lang: 'text', size: 10.5, color: o.color || 'amber', lines: lines.concat(gapLines), parent: g });
+    var gapLines = wrap('gap: ' + d.gap, Math.floor(w / 9.4));
+    var code = ctx.code({ x: x, y: y, w: w, title: o.title || 'model output (illustrative)', lang: 'text', size: 12, color: o.color || 'amber', lines: lines.concat(gapLines), parent: g });
     return { g: g, code: code, h: code.h };
   }
   function wrap(str, n) {

@@ -5,8 +5,8 @@
   var D = window.OutageDraw;
   var CASE = window.OUTAGE_CASE;
   var DEC = window.OUTAGE_DECISIONS;
-  var GRID_BOX = { x: 20, y: 466, w: 600, h: 380 };
-  var PX = { decision: [650, 470, 930], obs: [650, 592, 455], state: [1125, 592, 455], ctx: [650, 760, 930] };
+  var GRID_BOX = { x: 20, y: 486, w: 580, h: 368 };
+  var PX = { decision: [640, 486, 940], obs: [640, 612, 460], state: [1120, 612, 460], ctx: [640, 776, 940] };
 
   function kb(bytes) { return (bytes / 1024).toFixed(bytes < 10240 ? 1 : 0) + ' KB'; }
   function tok(bytes) { return D.fmt(D.tokens(bytes)) + ' tokens'; }
@@ -24,7 +24,7 @@
     return out.length ? out : ['(no lines mention ' + refId + ')'];
   }
 
-  var DECISION = ['llm_call', 'parse', 'validate_action', 'record_error_obs', 'END: retry cap', 'completion_checks'];
+  var DECISION = ['llm_call', 'parse', 'validate_action', 'record_error_obs', 'END: retry cap', 'verifier', 'completion_checks'];
   function setActive(S, name) {
     Object.keys(S.G).forEach(function (n) {
       var on = !name || n === name || (name === 'decision' && DECISION.indexOf(n) >= 0);
@@ -43,18 +43,17 @@
     var st = CASE.states[i], sa = D.region(i, 'Study_area');
     S.statePanel = D.kv(ctx, PX.state[0], PX.state[1], PX.state[2], [
       ['Study_area queried', D.fmt(sa.queried) + ' / ' + D.fmt(sa.total)],
-      ['queried, missing data', sa.missing],
       ['valid with D0 present', sa.target],
-      ['frontier, D0 at', sa.boundary_target + ' of ' + sa.boundary],
-      ['rendered context', tok(st.context_bytes)]
-    ], { title: 'State ' + st.id + ' (after this step)', color: 'teal', lh: 20 });
+      ['queried, data missing', sa.missing],
+      ['boundary, D0 at', sa.boundary_target + ' of ' + sa.boundary]
+    ], { title: 'State ' + st.id, color: 'teal' });
     return S.statePanel;
   }
 
   /* the orchestration graph, drawn paper-style: one pipeline row, branch nodes directly under their source,
    * return edges as nested orthogonal arcs underneath, no crossings. Nodes keyed by name in S.G. */
   function drawGraph(ctx, S) {
-    var H = 44, W = 136, RA = 190, RB = 300;
+    var H = 40, W = 136, RA = 172, RB = 258, RC = 344;
     var g = ctx.group();
     S.G = {};
     function node(name, cx, cy, sub, color, kind, w) {
@@ -63,54 +62,58 @@
     }
     /* row A: the pipeline */
     node('START', 65, RA, '', 'white', 'pill', 70);
-    node('initialize', 182, RA, 'task · lookup · State 0', 'magenta');
+    node('initialize', 182, RA, 'lookups · State 0', 'magenta');
     node('render_context', 332, RA, 'State → text', 'amber');
     node('llm_call', 482, RA, 'action · params · gap', 'amber');
-    node('parse', 632, RA, 'strict · cap 3', 'magenta');
+    node('parse', 632, RA, 'three parts', 'magenta');
     node('validate_action', 782, RA, 'registry · State', 'magenta');
     node('execute_query', 932, RA, 'tool · timeout', 'blue');
-    node('update_state', 1082, RA, 'facts + provenance', 'teal');
+    node('update_state', 1082, RA, 'facts + source', 'teal');
     node('write_step', 1232, RA, 'Step record', 'teal');
-    node('loop_guards', 1382, RA, 'caps · repeats', 'magenta');
+    node('loop_guards', 1382, RA, 'caps', 'magenta');
     node('END: cap hit', 1519, RA, '', 'red', 'pill', 110);
-    /* row B: branches, each under its source */
+    /* row B */
     node('END: retry cap', 482, RB, '', 'red', 'pill');
     node('record_error_obs', 632, RB, 'what failed, why', 'magenta');
-    node('completion_checks', 782, RB, 'four checks', 'pink');
-    node('END: complete', 919, RB, '', 'red', 'pill', 110);
+    node('verifier', 782, RB, 'agree · concern', 'amber');
+    /* row C */
+    node('completion_checks', 782, RC, 'four rules', 'pink');
+    node('END: complete', 919, RC, '', 'red', 'pill', 110);
 
     function arrow(d, o) { o = o || {}; return ctx.path(d, { stroke: o.color || 'dim', sw: 1.3, dash: o.dash, arrow: true, parent: g }); }
-    function lbl(x, y, t, anchor, color) { return ctx.text(x, y, t, { size: 9.5, color: color || 'dim', anchor: anchor || 'middle', parent: g }); }
-    var yA = RA, yB = RB, top = RA - H / 2, bot = RA + H / 2, botB = RB + H / 2, topB = RB - H / 2;
+    function lbl(x, y, t, anchor, color) { return ctx.text(x, y, t, { size: 10, color: color || 'dim', anchor: anchor || 'middle', parent: g }); }
+    var yA = RA, yB = RB, yC = RC, bot = RA + H / 2, topB = RB - H / 2, botB = RB + H / 2, topC = RC - H / 2, botC = RC + H / 2;
     /* row A, left to right */
     arrow('M100,' + yA + ' L113,' + yA);
     arrow('M250,' + yA + ' L263,' + yA);
     arrow('M400,' + yA + ' L413,' + yA);
     arrow('M550,' + yA + ' L563,' + yA);
     arrow('M700,' + yA + ' L713,' + yA, { dash: '4 3' });
-    arrow('M850,' + yA + ' L863,' + yA, { dash: '4 3', color: 'blue' });
     arrow('M1000,' + yA + ' L1013,' + yA);
     arrow('M1150,' + yA + ' L1163,' + yA);
     arrow('M1300,' + yA + ' L1313,' + yA);
     arrow('M1450,' + yA + ' L1463,' + yA, { dash: '4 3', color: 'red' });
     /* branches down */
-    arrow('M632,' + bot + ' L632,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(624, 250, 'does not parse', 'end', 'red');
-    arrow('M745,' + bot + ' L745,255 L668,255 L668,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(752, 238, 'invalid', 'start', 'red');
-    arrow('M800,' + bot + ' L800,' + (topB - 1), { dash: '4 3', color: 'pink' }); lbl(806, 250, 'finish request', 'start', 'pink');
-    arrow('M564,' + yB + ' L551,' + yB, { dash: '4 3', color: 'red' }); lbl(557, 288, 'cap (3)', 'middle', 'red');
-    arrow('M850,' + yB + ' L863,' + yB, { dash: '4 3', color: 'pink' }); lbl(857, 288, 'met', 'middle', 'pink');
-    /* return arcs, nested: shortest shallowest */
-    arrow('M632,' + botB + ' L632,360 L365,360 L365,' + (bot + 1), { dash: '4 3', color: 'red' }); lbl(498, 354, 'retry: error observation into the next context', 'middle', 'red');
-    arrow('M782,' + botB + ' L782,390 L330,390 L330,' + (bot + 1), { dash: '4 3', color: 'pink' }); lbl(556, 384, 'unmet: requirements written into State, rendered next round', 'middle', 'pink');
-    arrow('M1382,' + bot + ' L1382,420 L290,420 L290,' + (bot + 1), { color: 'magenta' }); lbl(836, 414, 'next round', 'middle', 'magenta');
-    /* legend */
-    lbl(1180, 300, 'solid: always · dashed: conditional · program nodes in colour, the model in orange', 'start');
-    /* the decision core: model output, parsing, validation and completion as one zoom target */
+    arrow('M632,' + bot + ' L632,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(624, 224, 'does not parse', 'end', 'red');
+    arrow('M745,' + bot + ' L745,222 L668,222 L668,' + (topB - 1), { dash: '4 3', color: 'red' }); lbl(752, 214, 'invalid', 'start', 'red');
+    arrow('M800,' + bot + ' L800,' + (topB - 1), { color: 'amber' }); lbl(806, 224, 'checks pass', 'start', 'amber');
+    arrow('M564,' + yB + ' L551,' + yB, { dash: '4 3', color: 'red' }); lbl(557, 248, 'cap', 'middle', 'red');
+    /* verifier routes by action */
+    arrow('M850,' + (yB - 8) + ' L932,' + (yB - 8) + ' L932,' + (bot + 1), { dash: '4 3', color: 'blue' }); lbl(891, 242, 'query', 'middle', 'blue');
+    arrow('M782,' + botB + ' L782,' + (topC - 1), { dash: '4 3', color: 'pink' }); lbl(788, 310, 'finish', 'start', 'pink');
+    lbl(850, yB + 14, 'concern → fact in State', 'start', 'amber');
+    arrow('M850,' + yC + ' L863,' + yC, { dash: '4 3', color: 'pink' }); lbl(857, 334, 'met', 'middle', 'pink');
+    /* return arcs, nested */
+    arrow('M632,' + botB + ' L632,392 L365,392 L365,' + (bot + 1), { dash: '4 3', color: 'red' }); lbl(498, 386, 'retry: the error becomes an observation', 'middle', 'red');
+    arrow('M782,' + botC + ' L782,412 L330,412 L330,' + (bot + 1), { dash: '4 3', color: 'pink' }); lbl(556, 406, 'unmet: requirements written into State', 'middle', 'pink');
+    arrow('M1382,' + bot + ' L1382,432 L290,432 L290,' + (bot + 1), { color: 'magenta' }); lbl(836, 426, 'next round', 'middle', 'magenta');
+    lbl(1010, 262, 'solid: always · dashed: conditional · model in orange', 'start');
+    /* the decision core: model output, parsing, validation, verifier and completion as one zoom target */
     S.box = ctx.group({ parent: g });
-    ctx.rect(406, 160, 448, 172, { rx: 10, fill: 'rgba(0,0,0,0.001)', stroke: 'pink', sw: 1.4, dash: '7 5', parent: S.box });
-    S.box.box = { x: 406, y: 160, w: 448, h: 172, cx: 630, cy: 246, l: 406, r: 854, t: 160, b: 332 };
+    ctx.rect(406, 142, 448, 230, { rx: 10, fill: 'rgba(0,0,0,0.001)', stroke: 'pink', sw: 1.4, dash: '7 5', parent: S.box });
+    S.box.box = { x: 406, y: 142, w: 448, h: 230, cx: 630, cy: 257, l: 406, r: 854, t: 142, b: 372 };
     S.box.color = 'pink';
-    lbl(412, 150, 'decision core', 'start', 'pink');
+    lbl(412, 134, 'decision core', 'start', 'pink');
     S.graph = g;
     var G = S.G;
     ctx.hotspot(G.initialize, 'init');
@@ -137,13 +140,11 @@
         S.frame = S.grid.frame(D.referenceIds(ref), 'cyan');
         if (i === 1) S.grid.showCells(true);
         S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
-          ['validate_action', 'name, reference, epoch accepted'],
+          ['validated', 'name, area and epoch accepted'],
           ['observation', o.id + ' · ' + o.result_status],
           ['requested / valid / missing', o.requested + ' / ' + o.valid + ' / ' + o.missing],
-          ['valid with D0 present', o.target],
-          ['D0 RSRP range (dBm)', rsrp(o)],
-          ['raw result', kb(o.bytes) + ' on disk, not sent']
-        ], { title: 'coverage.query(' + ref + ')', color: 'blue', lh: 20 });
+          ['D0 present · RSRP dBm', o.target + ' · ' + rsrp(o)]
+        ], { title: 'coverage.query(' + ref + ')', color: 'blue' });
         return Promise.all([ctx.reveal(S.obsPanel.g, { from: 'up' }), ctx.pulse(S.frame, { color: 'cyan', times: 2, dur: 600 })]);
       },
       update: function () {
@@ -155,7 +156,7 @@
       },
       render: function () {
         setActive(S, 'render_context');
-        S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context ' + CASE.states[i].id + ' · lines about ' + ref, lang: 'text', size: 10.5, color: 'amber', maxLines: 4, lines: contextLines(i, ref, 4) });
+        S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context ' + CASE.states[i].id + ' · lines about ' + ref, lang: 'text', size: 12, color: 'amber', maxLines: 4, lines: contextLines(i, ref, 4) });
         return ctx.reveal(S.ctxBlock, { from: 'up' });
       }
     };
@@ -175,8 +176,8 @@
       drawGraph(ctx, S);
       S.grid = D.grid(ctx, GRID_BOX);
       S.grid.setClasses(CASE.states[0].classes);
-      S.grid.legendRow(20, 866, false);
-      ctx.text(650, 890, 'Synthetic study area, 6 km by 4 km, 100 m grid, 2,400 locations. Maps are for people; the model reads text.', { size: 10.5, color: 'dim' });
+      S.grid.legendRow(20, 874, false);
+      ctx.text(640, 892, 'Synthetic study area, 6 km by 4 km, 100 m grid, 2,400 locations. Maps are for people; the model reads text.', { size: 11, color: 'dim' });
     },
     steps: [
       {
@@ -210,7 +211,7 @@
           S.grid.setClasses(CASE.states[0].classes);
           S.grid.outline(null);
           S.grid.showCells(false);
-          S.taskCard = ctx.code({ x: PX.decision[0], y: PX.decision[1], w: PX.decision[2], title: 'task', lang: 'text', size: 10.5, color: 'cyan', lines: [
+          S.taskCard = ctx.code({ x: PX.decision[0], y: PX.decision[1], w: PX.decision[2], title: 'task', lang: 'text', size: 12, color: 'cyan', lines: [
             'down_cell_id: ' + CASE.task.down_cell_id,
             'outage_time:  ' + CASE.task.outage_time,
             'objective:    investigate the outage impact of ' + CASE.task.down_cell_id
@@ -219,17 +220,17 @@
           return ctx.reveal(S.taskCard, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
             setActive(S, 'initialize');
             S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
-              ['settlements', 'S1, S2, S3'], ['highways (query by buffer)', 'H1 300 m, H2 500 m'], ['land use', 'F1, V1, F2'],
-              ['cells', 'D0 down; others unknown until coverage is queried'], ['resolvable references', '11'], ['spatial relations', CASE.relations.length]
-            ], { title: 'geography known at start', color: 'cyan', lh: 20 });
+              ['settlements', 'S1, S2, S3'], ['highways, queried by buffer', 'H1 300 m, H2 500 m'], ['land use', 'F1, V1, F2'],
+              ['cells', 'D0 down; others unknown until coverage is queried']
+            ], { title: 'geography known at start', color: 'cyan' });
             return Promise.all([ctx.reveal(S.obsPanel.g, { from: 'up' }), ctx.pulse(S.grid.g, { color: 'cyan', times: 1, dur: 800 })]);
           }).then(function () { return ctx.beat(2); }).then(function () {
             statePanel(ctx, S, 0);
-            S.statePanel.set(3, 'no frontier yet');
+            S.statePanel.set(3, 'no boundary yet');
             return ctx.reveal(S.statePanel.g, { from: 'up' });
           }).then(function () { return ctx.beat(3); }).then(function () {
             setActive(S, 'render_context');
-            S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context state_00 · first lines', lang: 'text', size: 10.5, color: 'amber', maxLines: 4, lines: CASE.states[0].context.split('\n').slice(0, 4) });
+            S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context state_00 · first lines', lang: 'text', size: 12, color: 'amber', maxLines: 3, lines: CASE.states[0].context.split('\n').slice(0, 3) });
             return ctx.reveal(S.ctxBlock, { from: 'up' });
           });
         }
@@ -248,14 +249,14 @@
             deep: '<p>Validation checks the action name, that <code>S1</code> is a known reference, that the query geometry equals the reference geometry, that the requested grid set equals the reference\'s set, and that the coverage epoch is pre-outage. The tool returns exactly one record per requested id; a <b>missing</b> record carries no signals. The 12 KB result stays on disk; State keeps a link to it.</p>'
           },
           {
-            say: 'State is updated from the observation. Thirty six locations move from unknown to queried, the per reference summary is recomputed, and twenty frontier locations now face the unqueried outside, nineteen of them with D0.',
-            card: { tag: 'KEY IDEA', title: 'Frontier by adjacency only', body: 'A queried location is on the frontier if an orthogonal neighbour in the same reference is unqueried. Signal strength never selects the frontier.' },
-            deep: '<p>The region summary for every reference is recomputed from the union of all executed observations, deduplicated by grid id. For the study area after step 1: 36 queried, 35 valid, 1 missing, 33 with D0, 20 frontier locations of which 19 show D0. Strong D0 at the edge of the queried area means the area is probably too small; a completion check reads this number.</p>'
+            say: 'State is updated from the observation. Thirty six locations move from unknown to queried, the per reference summary is recomputed, and twenty boundary locations now face the unqueried outside, nineteen of them with D0.',
+            card: { tag: 'KEY IDEA', title: 'Query boundary', body: 'Queried grid cells that share an edge with at least one unqueried grid cell. Signal strength plays no part in choosing it.' },
+            deep: '<p>The region summary for every reference is recomputed from the union of all executed observations, deduplicated by grid id. For the study area after step 1: 36 queried, 35 valid, 1 missing, 33 with D0, 20 boundary locations of which 19 show D0. Strong D0 at the edge of the queried area means the area is probably too small; a completion check reads this number.</p>'
           },
           {
             say: 'The context for the next decision is rendered again from the new State. The lines about S1 now carry the counts. The whole text grew by about five hundred tokens, not by the twelve kilobytes of the raw result.',
             card: { tag: 'NUMBERS', title: 'Rendering, not appending', stat: { v: '2,687', u: 'tokens', l: 'context after step 1; the raw observation (12 KB) is not in it' } },
-            deep: '<p>In an append-only harness the 12 KB result would be added to the transcript and resent on every later call. Here the program computed the counts and wrote four lines. The model will see progress, coverage, frontier and unknowns for S1, and a provenance line that names <code>obs_01</code>.</p>'
+            deep: '<p>In an append-only harness the 12 KB result would be added to the transcript and resent on every later call. Here the program computed the counts and wrote four lines. The model will see progress, coverage, boundary and unknowns for S1, and a provenance line that names <code>obs_01</code>.</p>'
           }
         ],
         run: function (ctx) { var q = Q(ctx, 1); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
@@ -274,9 +275,9 @@
             deep: '<p>Four situations are kept apart in every observation: valid with D0, valid with other cells only, valid with an empty cell list (no coverage), and missing data. Only the first marks a potentially affected location. The third and fourth must never be merged: no coverage is evidence, missing is not.</p>'
           },
           {
-            say: 'After the update one hundred six locations are queried. The frontier grew to fifty two locations, thirty seven of them with D0, so the area is still open in several directions.',
-            card: { tag: 'KEY IDEA', title: 'Frontier counts guide the search', body: 'The program reports where the queried area ends and D0 is still present. The model decides which frontier to push; the program never does.' },
-            deep: '<p>Study area after step 2: 106 queried, 77 with D0, frontier 52 with D0 at 37. Overlaps are deduplicated: the H1 corridor shares locations with S1, and a location counts once. Counts are reported per reference and the context says they must not be added together.</p>'
+            say: 'After the update one hundred six locations are queried. The boundary grew to fifty two locations, thirty seven of them with D0, so the area is still open in several directions.',
+            card: { tag: 'KEY IDEA', title: 'Boundary counts guide the search', body: 'The program reports where the queried area ends and D0 is still present. The model decides where to push next.' },
+            deep: '<p>Study area after step 2: 106 queried, 77 with D0, boundary 52 with D0 at 37. Overlaps are deduplicated: the H1 corridor shares locations with S1, and a location counts once. Counts are reported per reference and the context says they must not be added together.</p>'
           },
           {
             say: 'The rendered context now has lines for both S1 and the H1 corridor. It is still under three thousand tokens.',
@@ -297,12 +298,12 @@
           {
             say: 'This is the largest query of the run: one hundred ninety two locations. One hundred ninety are valid, two are missing, and D0 is present at one hundred sixty nine of them.',
             card: { tag: 'NUMBERS', title: 'Along H2', stat: { v: '169 / 192', l: 'with D0; RSRP −111 to −80.47 dBm; raw result 85 KB' } },
-            deep: '<p>The corridor overlaps the southern rows of S2, so S2\'s own summary changes without S2 being queried by name: 36 of its 200 locations are now queried, 20 with D0, and S2 has an 11-location frontier facing its interior. Region summaries are cumulative evidence, not the result of the last step.</p>'
+            deep: '<p>The corridor overlaps the southern rows of S2, so S2\'s own summary changes without S2 being queried by name: 36 of its 200 locations are now queried, 20 with D0, and S2 has an 11-location boundary facing its interior. Region summaries are cumulative evidence, not the result of the last step.</p>'
           },
           {
-            say: 'Two hundred seventy two locations are queried. D0 is present at two hundred twenty two. The frontier has one hundred seventeen locations and D0 is at ninety two of them.',
-            card: { tag: 'WHY IT MATTERS', title: 'S2 is now in view', body: 'The corridor touched S2\'s roadside rows. The S2 summary shows a frontier into its interior with D0 at 4 of 11 locations.' },
-            deep: '<p>Study area after step 3: 272 queried, 222 with D0, 7 with no coverage, 41 other cells only, 2 missing. The S2 summary drives the next two decisions: part of S2 is known, the interior is not, and the frontier shows D0.</p>'
+            say: 'Two hundred seventy two locations are queried. D0 is present at two hundred twenty two. The boundary has one hundred seventeen locations and D0 is at ninety two of them.',
+            card: { tag: 'WHY IT MATTERS', title: 'S2 is now in view', body: 'The corridor touched S2\'s roadside rows. The S2 summary shows a boundary into its interior with D0 at 4 of 11 locations.' },
+            deep: '<p>Study area after step 3: 272 queried, 222 with D0, 7 with no coverage, 41 other cells only, 2 missing. The S2 summary drives the next two decisions: part of S2 is known, the interior is not, and the boundary shows D0.</p>'
           },
           {
             say: 'The context lines for S2 appear although S2 was never named in a query. This is the point of computing summaries per reference from all evidence.',
@@ -317,22 +318,22 @@
         beats: [
           {
             say: 'The H2 corridor showed D0 at the edge of S2. Instead of querying all of S2, the decision targets its five roadside rows, forty locations. This is a scope choice, and it is the model\'s to make.',
-            card: { tag: 'TRADE-OFF', title: 'Part of a settlement first', body: 'Smaller query, less cost, but a frontier remains inside S2. The manual trace made the same kind of choice; it is a strategy, not a rule.' },
+            card: { tag: 'TRADE-OFF', title: 'Part of a settlement first', body: 'Smaller query, less cost, but a boundary remains inside S2. The manual trace made the same kind of choice; it is a strategy, not a rule.' },
             deep: '<p><code>S2_roadside</code> is a declared sub-reference: the southern five grid rows of S2, 40 locations. Querying it costs 40 locations against 200 for all of S2. The decision is reasonable, not provably right. The handoff is explicit that the roadside-first choice from the manual case is case-specific.</p>'
           },
           {
             say: 'All forty records are valid. D0 is present at twenty, weak, between minus one hundred eleven and minus one hundred four dBm. The other twenty have other cells only.',
             card: { tag: 'NUMBERS', title: 'S2 roadside', stat: { v: '20 / 40', l: 'with D0 at −111 to −104 dBm; the result status is complete, no missing records' } },
-            deep: '<p>This is the only observation in the run with result status <b>complete</b>. Weak D0 at the edge of its range is exactly the case where the frontier rule matters: the signal fades, but fading is not absence.</p>'
+            deep: '<p>This is the only observation in the run with result status <b>complete</b>. Weak D0 at the edge of its range is exactly the case where the boundary rule matters: the signal fades, but fading is not absence.</p>'
           },
           {
-            say: 'Within S2, forty locations are queried and one hundred sixty are not. The frontier facing the interior has eight locations, and D0 is present at four of them. The interior stays unknown.',
-            card: { tag: 'KEY IDEA', title: 'Half the frontier still shows D0', body: 'Eight frontier locations, D0 at four. The program states this fact; whether to push into the interior is the next decision.' },
-            deep: '<p>S2 after step 4: 40 queried of 200, 20 with D0, frontier 8 with D0 at 4, no missing. The study area frontier is 119 with D0 at 92. A completion check on "boundary still shows the down cell" would reject a stop here, and it should.</p>'
+            say: 'Within S2, forty locations are queried and one hundred sixty are not. The boundary facing the interior has eight locations, and D0 is present at four of them. The interior stays unknown.',
+            card: { tag: 'KEY IDEA', title: 'Half the boundary still shows D0', body: 'Eight boundary locations, D0 at four. The program states the fact; the next decision is the model\'s.' },
+            deep: '<p>S2 after step 4: 40 queried of 200, 20 with D0, boundary 8 with D0 at 4, no missing. The study area boundary is 119 with D0 at 92. A completion check on "boundary still shows the down cell" would reject a stop here, and it should.</p>'
           },
           {
             say: 'The rendered context says it directly: along the query boundary facing the unqueried interior, D0 is present at four of eight boundary locations. Coverage in the unqueried interior remains unknown.',
-            card: { tag: 'HOW IT WORKS', title: 'Facts, not raw rows', body: 'The model reads one sentence about the frontier. The 17 KB of records that produced it stay in <code>obs_04.json</code>.' },
+            card: { tag: 'HOW IT WORKS', title: 'Facts, not raw rows', body: 'The model reads one sentence about the boundary. The 17 KB of records that produced it stay in <code>obs_04.json</code>.' },
             deep: '<p>Context after step 4 is 2,895 tokens, slightly smaller than after step 3 because some unknowns were resolved. The lines about <code>S2_roadside</code> and the updated lines about <code>S2</code> are the whole change the model sees.</p>'
           }
         ],
@@ -342,8 +343,8 @@
         title: 'Action 5: S2 interior',
         beats: [
           {
-            say: 'With D0 at half the frontier, the next decision queries the remaining interior of S2, one hundred sixty locations. The gap is whether D0 reaches the interior at all.',
-            card: { tag: 'HOW IT WORKS', title: 'Close the frontier', body: '<code>S2_remaining</code>: S2 minus the roadside rows. After it, S2 has no interior frontier left.' },
+            say: 'With D0 at half the boundary, the next decision queries the remaining interior of S2, one hundred sixty locations. The gap is whether D0 reaches the interior at all.',
+            card: { tag: 'HOW IT WORKS', title: 'Close the boundary', body: '<code>S2_remaining</code>: S2 minus the roadside rows. After it, S2 has no interior boundary left.' },
             deep: '<p>The decision is driven by a program-reported fact, not by a guess. This is the intended division of labour: the program computes where evidence ends, the model chooses what to do about it.</p>'
           },
           {
@@ -352,12 +353,12 @@
             deep: '<p>Nine missing records in one query is the largest gap in the run. They are reported as missing, not as no coverage, and they stay in the unknowns list. The 57 KB result would be the second largest item in an append-only transcript.</p>'
           },
           {
-            say: 'S2 is now fully queried: fifty of two hundred locations with D0, nine missing, no interior frontier. The study area has four hundred thirty six queried locations.',
+            say: 'S2 is now fully queried: fifty of two hundred locations with D0, nine missing, no interior boundary. The study area has four hundred thirty six queried locations.',
             card: { tag: 'KEY IDEA', title: 'A settlement is closed', body: 'No queried-unqueried boundary remains inside S2. The remaining S2 unknowns are the 9 missing records.' },
-            deep: '<p>Study area after step 5: 436 queried, 252 with D0, 158 other cells only, 15 no coverage, 11 missing. The frontier is 158 with D0 at 99, now mostly along the corridors toward the farmland, vineyard and forest, which have no coverage data at all.</p>'
+            deep: '<p>Study area after step 5: 436 queried, 252 with D0, 158 other cells only, 15 no coverage, 11 missing. The boundary is 158 with D0 at 99, now mostly along the corridors toward the farmland, vineyard and forest, which have no coverage data at all.</p>'
           },
           {
-            say: 'The context for S2 changes from a frontier sentence to a closure sentence. The model is told that no interior boundary exists in this reference.',
+            say: 'The context for S2 changes from a boundary sentence to a closure sentence. The model is told that no interior boundary exists in this reference.',
             card: { tag: 'NUMBERS', title: 'Context after step 5', stat: { v: '3,006', u: 'tokens', l: 'raw observations so far: 203 KB, about 50,700 tokens' } },
             deep: '<p>The rendering crosses 3,000 tokens for the first time. The growth comes from more references having content, not from history. An appended transcript would be seventeen times larger at this point.</p>'
           }
@@ -378,9 +379,9 @@
             deep: '<p>A zero is evidence here because it comes from valid records with other cells listed. Had the 48 records been missing, the same zero would mean nothing. The RSRP range for D0 in S3 is reported as none, not as a number.</p>'
           },
           {
-            say: 'The study area now has four hundred sixty six queried locations. The frontier grew to one hundred sixty eight locations, D0 at ninety nine, almost all of them facing the farmland, the vineyard and the forest.',
-            card: { tag: 'PITFALL', title: 'The open frontier is rural', body: 'F1, V1 and F2 hold 727 unqueried locations. Land use says nothing about demand there; it is simply unknown.' },
-            deep: '<p>Study area after step 6: 466 queried, 252 with D0, 186 other only, 15 no coverage, 13 missing, frontier 168 with D0 at 99. Every settlement is closed; the corridors end at unqueried land. A completion check would still find the down cell on the boundary.</p>'
+            say: 'The study area now has four hundred sixty six queried locations. The boundary grew to one hundred sixty eight locations, D0 at ninety nine, almost all of them facing the farmland, the vineyard and the forest.',
+            card: { tag: 'PITFALL', title: 'The open boundary is rural', body: 'F1, V1 and F2 hold 727 unqueried locations. Land use says nothing about demand there; it is simply unknown.' },
+            deep: '<p>Study area after step 6: 466 queried, 252 with D0, 186 other only, 15 no coverage, 13 missing, boundary 168 with D0 at 99. Every settlement is closed; the corridors end at unqueried land. A completion check would still find the down cell on the boundary.</p>'
           },
           {
             say: 'The S3 lines in the context now read: D0 is present at zero of the forty eight queried locations. The unknowns list shrinks for S3 and keeps the three rural references.',
@@ -395,8 +396,8 @@
         beats: [
           {
             say: 'Step seven queries S2 roadside a second time. In the recorded run this is deliberate, to show deduplication. In a live run it would be the signature of a stuck model.',
-            card: { tag: 'PITFALL', title: 'The same query again', body: 'Same action, same parameters as step 4. A repeated-query detector, hashing action and parameters, is the proposed guard.' },
-            deep: '<p>For queries that cost area, a threshold of two identical calls is proposed. The guard lives in <code>loop_guards</code>, ends the run with the typed reason <b>repeated_query</b>, and a person reviews the trace. In the recorded run the step is allowed through so the deduplication can be shown.</p>'
+            card: { tag: 'PITFALL', title: 'The same query again', body: 'Same action, same parameters as action 4. The repeated-query guard hashes action and parameters and ends the run on a repeat.' },
+            deep: '<p>For queries that cost area, a second identical call ends the run. The guard lives in <code>loop_guards</code>, ends the run with the typed reason <b>repeated_query</b>, and a person reviews the trace. In the recorded run the step is allowed through so the deduplication can be shown.</p>'
           },
           {
             say: 'The query returns the same forty records as before. The observation gets a new id, obs seven, and is stored in full like every other result.',
@@ -410,8 +411,8 @@
           },
           {
             say: 'The rendered context changes in one place: the provenance list gains obs seven. A step history, which the current rendering does not have, would make the repeat visible to the model itself.',
-            card: { tag: 'TRADE-OFF', title: 'The model cannot see its own repeat', body: 'Today only the provenance list shows two S2_roadside observations. A short step history in the context is the proposed fix.' },
-            deep: '<p>Context after step 7: 3,041 tokens. Adding the last few steps as action, gap and one-line outcome would let the model notice the repetition without a program guard, at a cost of a few hundred tokens. This is experiment condition B in the design.</p>'
+            card: { tag: 'TRADE-OFF', title: 'The model cannot see its own repeat', body: 'Only the provenance list shows two S2_roadside observations. A short step history in the context lets the model see it.' },
+            deep: '<p>Context after step 7: 3,041 tokens. Adding the last few steps as action, gap and one-line outcome would let the model notice the repetition without a program guard, at a cost of a few hundred tokens. This is one of the context conditions in the evaluation.</p>'
           }
         ],
         run: function (ctx) { var q = Q(ctx, 7); return q.decide().then(function () { return ctx.beat(1); }).then(q.execute).then(function () { return ctx.beat(2); }).then(q.update).then(function () { return ctx.beat(3); }).then(q.render); }
@@ -451,28 +452,26 @@
             S.grid.setClasses(CASE.states[i].classes);
             S.grid.setAssignment(imp.assignment);
             S.grid.outline(null);
-            S.backLegend = S.grid.legendRow(20, 886, true);
+            S.backLegend = S.grid.legendRow(20, 874, true);
             S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
-              ['scope', imp.scope_reference_id + ': ' + imp.scope_queried + ' queried'],
+              ['scope', imp.scope_queried + ' queried · ' + imp.target_location_count + ' with D0'],
               ['excluded', imp.excluded_unqueried + ' unqueried, ' + imp.excluded_missing + ' missing'],
-              ['D0 locations in scope', imp.target_location_count],
-              ['assigned B1 / B2 / B3', '139 / 95 / 14'],
-              ['no eligible backup', '4 locations'],
-              ['D0 traffic / unserved', imp.total_target_traffic_mbps + ' / ' + imp.unserved_traffic_mbps + ' Mbps']
-            ], { title: 'impact.estimate(Study_area)', color: 'blue', lh: 20 });
+              ['assigned B1 / B2 / B3', '139 / 95 / 14 · 4 without backup'],
+              ['D0 traffic / unserved (Mbps)', imp.total_target_traffic_mbps + ' / ' + imp.unserved_traffic_mbps]
+            ], { title: 'impact.estimate(Study_area)', color: 'blue' });
             return ctx.reveal(S.obsPanel.g, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
             setActive(S, 'update_state');
             var imp = CASE.states[i].impact;
             S.statePanel = D.kv(ctx, PX.state[0], PX.state[1], PX.state[2], imp.backup_loads.map(function (b) {
               return [b.cell_id + ': base ' + b.baseline_prb_percent + ' % +' + b.transferred_mbps + ' Mbps', 'PRB ' + b.estimated_prb_percent.toFixed(0) + ' %' + (b.exceeds_capacity ? ' · over' : '')];
-            }).concat([['formula', 'base + 100 · transferred / capacity'], ['rendered context', tok(CASE.states[i].context_bytes)]]), { title: 'State state_08 · backup loads', color: 'teal', lh: 20 });
+            }).concat([['formula', 'base + 100 · transferred / capacity'], ['rendered context', tok(CASE.states[i].context_bytes)]]), { title: 'State state_08 · backup loads', color: 'teal' });
             return ctx.reveal(S.statePanel.g, { from: 'up' });
           }).then(function () { return ctx.beat(3); }).then(function () {
             setActive(S, 'render_context');
             var lines = CASE.states[i].context.split('\n');
             var k = 0; for (var j = 0; j < lines.length; j++) if (lines[j].indexOf('Impact and backup analysis:') === 0) { k = j; break; }
-            S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context state_08 · impact section', lang: 'text', size: 10.5, color: 'amber', maxLines: 4, lines: lines.slice(k, k + 4).map(function (l) { return l.trim(); }) });
+            S.ctxBlock = ctx.code({ x: PX.ctx[0], y: PX.ctx[1], w: PX.ctx[2], title: 'context state_08 · impact section', lang: 'text', size: 12, color: 'amber', maxLines: 4, lines: lines.slice(k, k + 4).map(function (l) { return l.trim(); }) });
             return ctx.reveal(S.ctxBlock, { from: 'up' });
           });
         }
@@ -481,8 +480,8 @@
         title: 'End of the run',
         beats: [
           {
-            say: 'The script ends here, but the completion checks would not accept a stop. Three rural references have no coverage data, and the down cell is still present at ninety nine of the one hundred sixty eight frontier locations.',
-            card: { tag: 'KEY IDEA', title: 'Script end is not completion', body: 'A run ends with a typed reason. This one would be <b>budget or script exhausted</b>, never <b>complete</b>, because the frontier still shows D0.' },
+            say: 'The script ends here, but the completion checks would not accept a stop. Three rural references have no coverage data, and the down cell is still present at ninety nine of the one hundred sixty eight boundary locations.',
+            card: { tag: 'KEY IDEA', title: 'Script end is not completion', body: 'A run ends with a typed reason. This one would be <b>budget or script exhausted</b>, never <b>complete</b>, because the boundary still shows D0.' },
             deep: '<p>The four completion checks: the boundary buffer still shows the down cell (fails: 99 of 168); task-relevant regions queried or an explicit reason recorded (fails: F1, V1, F2 have 727 unqueried locations and no recorded reason); queried locations labelled (passes); backup analysis done for the relevant cells (passes for the queried scope). Thresholds are still to be set from reference results.</p>'
           },
           {
@@ -493,7 +492,7 @@
           {
             say: 'Each ringed node in the graph opens its own chamber: the context builder, tool management, state and trace, validation and completion, the loop itself, and offline evaluation.',
             card: { tag: 'TRY IT', title: 'Zoom into a module', body: 'Click a ringed node in the graph, or press Z for the list. Each chamber explains one module with the numbers from this run.' },
-            deep: '<p>The six chambers follow the functional modules of the design, merged where the prototype merges them. Tool management has two chambers of its own underneath: the action registry and the observation contract.</p>'
+            deep: '<p>The seven chambers follow the functional modules of the design. The decision core groups the model call, parsing, validation, the verifier and the completion checks, because together they turn a model output into either an executed action or feedback.</p>'
           }
         ],
         run: function (ctx) {
@@ -502,12 +501,11 @@
           setActive(S, 'decision');
           var sa = D.region(8, 'Study_area');
           S.decision = D.kv(ctx, PX.decision[0], PX.decision[1], PX.decision[2], [
-            ['frontier still shows D0', sa.boundary_target + ' of ' + sa.boundary + ' → not accepted'],
-            ['rural references unqueried', 'F1, V1, F2: 727 → not accepted'],
-            ['queried locations labelled', 'yes'],
+            ['boundary still shows D0', sa.boundary_target + ' of ' + sa.boundary + ' → not accepted'],
+            ['rural areas unqueried', 'F1, V1, F2: 727 → not accepted'],
             ['backup analysis in scope', 'done for 252 D0 locations'],
-            ['end reason', 'script_end (live: budget_exhausted)']
-          ], { title: 'completion checks on state_08', color: 'pink', lh: 20 });
+            ['end reason', 'script end']
+          ], { title: 'completion checks on state_08', color: 'pink' });
           return ctx.reveal(S.decision.g, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
             setActive(S, 'write_step');
             S.obsPanel = ctx.code({ x: 650, y: 620, w: 930, title: 'trace.json · 8 steps', lang: 'text', size: 10.5, color: 'lime', maxLines: 8, lines: CASE.steps.map(function (s) {

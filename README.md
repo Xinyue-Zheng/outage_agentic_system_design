@@ -6,30 +6,22 @@ The app is static. Open `index.html` in Chrome or Edge. No build step, no server
 
 ## What it shows
 
-Nine chambers in three levels:
+Eight chambers in two levels:
 
 ```
 L0  case         Outage Case, End to End        10 steps  Start, Action 1 to 8, End of the run
-├─ L1 init       Initialization                  4 steps  task in, geometry around the cell, initial State, hand-off
+├─ L1 init       Initialization                  4 steps  task in, areas around the cell, initial State, hand-off
 ├─ L1 context    Context Builder                 3 steps  why render from State, how it is built, what stays out
-├─ L1 decision   Decision Core               4 steps  the model proposes, parse, validate, finish request and completion
-├─ L1 tools      Tool Registry                   5 steps  one registry, MCP for data access, registration, the actions, validate-execute-normalize
-│   └─ L2 observation  Observation and Status    4 steps  one record per location, four situations, status, provenance
-├─ L1 state      State and Trace                 3 steps  what State holds, update and frontier, Step and Trace
+├─ L1 decision   Decision Core                   5 steps  the model proposes, parse, validate, verifier, finish and completion
+├─ L1 tools      Tool Registry                   3 steps  one table of actions, where actions run, from decision to Observation
+├─ L1 state      State and Trace                 2 steps  what State holds; State, Step, Trace and checkpoint
 ├─ L1 caps       Run Caps                        2 steps  checked every round, typed ends
-└─ L1 offline    Offline Evaluation              5 steps  metrics, baseline, localization, recovery, tuning
+└─ L1 offline    Offline Evaluation              4 steps  metrics, baseline, localization, recovery
 ```
 
 Every step is cut into points. For each point the page changes four things together: the diagram on the stage, the text in the left box, a callout card below it, and a deep-dive block on the right. Components with a dashed ring and a plus badge open their own chamber. Back zooms out. A system map lists every chamber.
 
 The actions in the case are the recorded ones. The decision texts shown at each step (action, parameters, information gap) are hand-written illustrations, not model output. Nothing in the UI calls a model.
-
-## Status vocabulary used in the chambers
-
-- **implemented**: runs today in the synthetic prototype (`agentic_test`).
-- **designed**: defined in the project handoff or the September deck, not implemented.
-- **proposed**: derived from the comparison with Codex CLI, Gemini CLI and TurnL; a design proposal.
-- **left out**: deliberately not built, with the reason.
 
 ## Data
 

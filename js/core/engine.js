@@ -620,7 +620,6 @@
       if (b >= bs.length - 1) { cur.idle = true; cur.wait = 'step'; flushWaiters(bt, Infinity); onStepIdle(); } else cur.wait = 'beat';
       updateNextButton(); setReady(true); updatePlayBtn();
       if (Engine.settings.autoStart) Engine.resume();
-      else toast('Back where you left off. Press Next to continue, or Start over (top left).');
     });
   };
 

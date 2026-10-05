@@ -6,10 +6,10 @@
     ['Task', 'cell, outage time, objective'],
     ['Known geography', 'objects and relations'],
     ['Investigation progress', 'per reference: queried, unqueried'],
-    ['Coverage observations', 'counts per class, frontier'],
+    ['Coverage observations', 'counts per class, boundary'],
     ['Impact and backup', 'once computed'],
     ['Remaining unknowns', 'what is still not known'],
-    ['Available actions', 'what may be proposed now'],
+    ['Available actions', 'what the model may choose now'],
     ['Evidence provenance', 'which observation produced what']
   ];
 
@@ -65,7 +65,7 @@
           {
             say: 'The context has fixed sections. A program template fills each one from State: the task, the geography, progress per reference, coverage counts, impact once computed, unknowns, available actions, and provenance.',
             card: { tag: 'HOW IT WORKS', title: 'Eight sections, one template', body: 'Every section is a view of State. The template decides the order and the wording; the numbers come from the region summaries.' },
-            deep: '<p>The template is plain program code without any model call. Each section reads one part of State: progress reads the queried and unqueried sets per reference, coverage reads the class counts and the frontier, unknowns reads the unknowns list, available actions reads the tool registry filtered by the current phase.</p>'
+            deep: '<p>The template is plain program code without any model call. Each section reads one part of State: progress reads the queried and unqueried sets per reference, coverage reads the class counts and the boundary, unknowns reads the unknowns list, available actions reads the tool registry filtered by the current phase.</p>'
           },
           {
             say: 'The sections fall into two parts. A stable prefix that does not change during a run: the skill, the task, the geography, the relations and the action list. And a variable part that changes every step.',
@@ -109,7 +109,7 @@
           {
             say: 'Maps are for people. The model cannot read images, so nothing in the context refers to a map or an image path as evidence.',
             card: { tag: 'PITFALL', title: 'No image paths as facts', body: 'The maps in this UI and in the trace are human artifacts. The model\'s evidence is text computed from State, always.' },
-            deep: '<p>This rule is enforced in the prototype by the template itself: it has no access to the map files. A future rendering that mentions a map would have to be added deliberately and would contradict the design.</p>'
+            deep: '<p>The template has no access to the map files. A future rendering that mentions a map would have to be added deliberately and would contradict the design.</p>'
           },
           {
             say: 'One question is open: whether the context should include the last few steps, so the model can see its own recent actions. That is the difference between two experiment conditions, and it is not decided.',
