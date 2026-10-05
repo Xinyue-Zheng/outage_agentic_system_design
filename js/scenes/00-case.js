@@ -24,8 +24,13 @@
     return out.length ? out : ['(no lines mention ' + refId + ')'];
   }
 
+  var DECISION = ['llm_call', 'parse', 'validate_action', 'record_error_obs', 'END: retry cap', 'completion_checks'];
   function setActive(S, name) {
-    Object.keys(S.G).forEach(function (n) { S.G[n].setAttribute('opacity', name && n !== name ? 0.38 : 1); });
+    Object.keys(S.G).forEach(function (n) {
+      var on = !name || n === name || (name === 'decision' && DECISION.indexOf(n) >= 0);
+      S.G[n].setAttribute('opacity', on ? 1 : 0.38);
+    });
+    if (S.box) S.box.setAttribute('opacity', !name || name === 'decision' ? 1 : 0.38);
   }
 
   function clearPanels(ctx, S) {
@@ -100,13 +105,17 @@
     arrow('M1382,' + bot + ' L1382,420 L290,420 L290,' + (bot + 1), { color: 'magenta' }); lbl(836, 414, 'next round', 'middle', 'magenta');
     /* legend */
     lbl(1180, 300, 'solid: always · dashed: conditional · program nodes in colour, the model in orange', 'start');
+    /* the decision pipeline: model output, parsing, validation and completion as one zoom target */
+    S.box = ctx.rect(404, 158, 582, 176, { rx: 10, fill: 'none', stroke: 'pink', sw: 1.4, dash: '7 5', parent: g });
+    lbl(410, 150, 'decision pipeline', 'start', 'pink');
     S.graph = g;
     var G = S.G;
+    ctx.hotspot(G.initialize, 'init');
     ctx.hotspot(G.render_context, 'context');
-    ctx.hotspot(G.validate_action, 'checks');
+    ctx.hotspot(S.box, 'decision');
     ctx.hotspot(G.execute_query, 'tools');
     ctx.hotspot(G.update_state, 'state');
-    ctx.hotspot(G.loop_guards, 'loop');
+    ctx.hotspot(G.loop_guards, 'caps');
     ctx.hotspot(G['END: complete'], 'offline');
   }
 
@@ -116,13 +125,14 @@
     return {
       decide: function () {
         clearPanels(ctx, S);
-        setActive(S, 'llm_call');
+        setActive(S, 'decision');
         S.decision = D.decision(ctx, PX.decision[0], PX.decision[1], PX.decision[2], DEC[i], { title: 'action ' + i + ' · model output (illustrative)' });
         return ctx.reveal(S.decision.g, { from: 'up' });
       },
       execute: function () {
         setActive(S, 'execute_query');
         S.frame = S.grid.frame(D.referenceIds(ref), 'cyan');
+        if (i === 1) S.grid.showCells(true);
         S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
           ['validate_action', 'name, reference, epoch accepted'],
           ['observation', o.id + ' · ' + o.result_status],
@@ -175,7 +185,7 @@
             deep: '<p>The run begins with a program-side phase. The task record holds the down cell id, the outage time and the objective. A cell lookup returns the cell\'s position and the settlement it sits in. These are facts the program knows for free and writes once, so the model never spends a step discovering them.</p>'
           },
           {
-            say: 'Geography is known before any coverage is queried: three settlements, two highways, farmland, a vineyard and a forest, plus four cell sites. Knowing a boundary does not mean knowing the coverage inside it.',
+            say: 'Geography is known before any coverage is queried: three settlements, two highways, farmland, a vineyard and a forest, and the site of the down cell. Other cells are not known yet; they appear only in coverage records. Knowing a boundary does not mean knowing the coverage inside it.',
             card: { tag: 'HOW IT WORKS', title: 'Geography first, coverage unknown', body: 'Polygons and road centerlines come from the map layer. Every one of the 2,400 grid locations starts as <b>unknown</b>.' },
             deep: '<p>Eleven resolvable references are derived from the geography: the study area, S1, S2, S3, two road corridors (H1 full width 300 m, H2 full width 500 m, round end caps), three land-use areas and two sub-areas of S2. Each reference resolves to an exact set of grid ids. Land-use labels name mapped types only; they are not population or demand.</p>'
           },
@@ -196,6 +206,7 @@
           setActive(S, 'START');
           S.grid.setClasses(CASE.states[0].classes);
           S.grid.outline(null);
+          S.grid.showCells(false);
           S.taskCard = ctx.code({ x: PX.decision[0], y: PX.decision[1], w: PX.decision[2], title: 'task', lang: 'text', size: 10.5, color: 'cyan', lines: [
             'down_cell_id: ' + CASE.task.down_cell_id,
             'outage_time:  ' + CASE.task.outage_time,
@@ -206,7 +217,7 @@
             setActive(S, 'initialize');
             S.obsPanel = D.kv(ctx, PX.obs[0], PX.obs[1], PX.obs[2], [
               ['settlements', 'S1, S2, S3'], ['highways (query by buffer)', 'H1 300 m, H2 500 m'], ['land use', 'F1, V1, F2'],
-              ['cells', 'D0 down; B1, B2, B3'], ['resolvable references', '11'], ['spatial relations', CASE.relations.length]
+              ['cells', 'D0 down; others unknown until coverage is queried'], ['resolvable references', '11'], ['spatial relations', CASE.relations.length]
             ], { title: 'geography known at start', color: 'cyan', lh: 20 });
             return Promise.all([ctx.reveal(S.obsPanel.g, { from: 'up' }), ctx.pulse(S.grid.g, { color: 'cyan', times: 1, dur: 800 })]);
           }).then(function () { return ctx.beat(2); }).then(function () {
@@ -406,7 +417,7 @@
         title: 'Action 8: backup and load',
         beats: [
           {
-            say: 'With every settlement and both corridors queried, the decision moves to the second phase: which backup cells take the traffic of the locations where D0 was present, and what load results.',
+            say: 'With every settlement and both corridors queried, the decision moves to the second phase. The candidate backup cells are the other cells that coverage records listed at the same locations: B1, B2 and B3. Which of them takes the traffic of each D0 location, and what load results?',
             card: { tag: 'HOW IT WORKS', title: 'Phase two: impact', body: '<code>impact.estimate</code> over the study area with explicit thresholds: RSRP at least −112 dBm and RSRQ at least −16 dB.' },
             deep: '<p>The scope is every queried, valid location where D0 was present: 252 locations. Missing (13) and unqueried (1,934) locations are excluded and reported as excluded. The rule: exclude D0, keep candidates above both thresholds, pick the strongest RSRP, break ties by cell id. This is a demonstration rule, not a calibrated handover model.</p>'
           },
@@ -429,7 +440,7 @@
         run: function (ctx) {
           var S = ctx.state, i = 8;
           clearPanels(ctx, S);
-          setActive(S, 'llm_call');
+          setActive(S, 'decision');
           S.decision = D.decision(ctx, PX.decision[0], PX.decision[1], PX.decision[2], DEC[8], { title: 'action 8 · model output (illustrative)' });
           return ctx.reveal(S.decision.g, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
             setActive(S, 'execute_query');
@@ -485,7 +496,7 @@
         run: function (ctx) {
           var S = ctx.state;
           clearPanels(ctx, S);
-          setActive(S, 'completion_checks');
+          setActive(S, 'decision');
           var sa = D.region(8, 'Study_area');
           S.decision = D.kv(ctx, PX.decision[0], PX.decision[1], PX.decision[2], [
             ['frontier still shows D0', sa.boundary_target + ' of ' + sa.boundary + ' → not accepted'],

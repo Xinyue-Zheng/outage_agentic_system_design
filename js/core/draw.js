@@ -33,6 +33,7 @@
     }
     var geo = ctx.group({ parent: g });
     var labels = ctx.group({ parent: g });
+    var hiddenCells = [];
     CASE.geography.forEach(function (item) {
       var geom = item.geometry;
       if (item.kind === 'study_area') return;
@@ -41,8 +42,9 @@
         ctx.poly(pts, { fill: 'none', stroke: '#e8edf5', sw: 2.4, closed: false, parent: geo });
         ctx.poly(pts, { fill: 'none', stroke: '#1b2a44', sw: 1.0, closed: false, parent: geo });
       } else if (item.kind === 'cell') {
-        var c = pts[0];
-        ctx.circle(c[0], c[1], 5, { fill: item.id === CASE.task.down_cell_id ? '#ff5d73' : '#7fd1ff', stroke: '#05070c', sw: 1.2, parent: geo });
+        var c = pts[0], isDown = item.id === CASE.task.down_cell_id;
+        var dot = ctx.circle(c[0], c[1], 5, { fill: isDown ? '#ff5d73' : '#7fd1ff', stroke: '#05070c', sw: 1.2, parent: geo });
+        if (!isDown) { dot.setAttribute('opacity', 0); hiddenCells.push(dot); }
       } else {
         ctx.poly(pts, { fill: 'none', stroke: item.kind === 'settlement' ? '#f2f5fa' : 'rgba(242,245,250,0.35)', sw: item.kind === 'settlement' ? 1.6 : 1, closed: true, parent: geo });
       }
@@ -50,11 +52,14 @@
       if (geom.kind === 'polyline') { var mid = pts[Math.floor(pts.length / 2)]; ax = mid[0]; ay = mid[1] - 8; }
       else if (item.kind === 'cell') { ax = pts[0][0] + 8; ay = pts[0][1] - 8; }
       else { ax = Math.min.apply(null, pts.map(function (p) { return p[0]; })) + 6; ay = Math.min.apply(null, pts.map(function (p) { return p[1]; })) + 12; }
-      ctx.text(ax, ay, item.id, { size: 11, color: 'white', weight: 700, parent: labels });
+      var lab = ctx.text(ax, ay, item.id, { size: 11, color: 'white', weight: 700, parent: labels });
+      if (item.kind === 'cell' && item.id !== CASE.task.down_cell_id) { lab.setAttribute('opacity', 0); hiddenCells.push(lab); }
     });
     var outline = ctx.group({ parent: g });
     var api = {
       g: g, cells: cells, box: box,
+      /* other cell sites become known only when coverage records list them */
+      showCells: function (on) { hiddenCells.forEach(function (e) { e.setAttribute('opacity', on === false ? 0 : 1); }); },
       setClasses: function (classes) {
         for (var i = 0; i < cells.length; i++) cells[i].setAttribute('fill', CLASS_FILL[classes.charAt(i)] || CLASS_FILL.u);
       },

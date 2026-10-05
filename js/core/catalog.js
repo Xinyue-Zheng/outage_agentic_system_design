@@ -4,29 +4,29 @@
 window.ATLAS_CATALOG = [
   { id: 'case', parent: null, level: 0, file: '00-case.js', color: 'cyan',
     title: 'Outage Case, End to End', kicker: 'One recorded investigation',
-    summary: 'A down cell and an outage time become an impact report: eight recorded steps, each with a decision, a query, an observation, a state update and a rendered context.' },
+    summary: 'A down cell and an outage time become an impact report: eight recorded actions, each with a decision, a query, an observation, a state update and a rendered context.' },
 
-  { id: 'loop', parent: 'case', level: 1, file: '10-loop.js', color: 'magenta',
-    title: 'The Investigation Loop', kicker: 'Program around the model',
-    summary: 'Render, decide, parse, validate, execute, update, record, guard. Who decides what, where failures go, and how a run ends.' },
+  { id: 'init', parent: 'case', level: 1, file: '11-init.js', color: 'cyan',
+    title: 'Initialization', kicker: 'Fixed logic before the loop',
+    summary: 'Cell lookup, map geometry, references and relations, the initial State and the first rendering. Where fixed program logic ends and the model begins.' },
   { id: 'context', parent: 'case', level: 1, file: '20-context.js', color: 'amber',
     title: 'Context Builder', kicker: 'What the model sees',
-    summary: 'The model input is rendered from State by a program template each step, not appended as a transcript. Sections, sizes, and the stable prefix.' },
+    summary: 'Why the model input is rendered from State instead of appended as a transcript, how the sections are built, and what stays out.' },
+  { id: 'decision', parent: 'case', level: 1, file: '50-decision.js', color: 'pink',
+    title: 'Decision Pipeline', kicker: 'From model output to action',
+    summary: 'The model proposes a three-part decision; the program parses it, validates it against the registry and State, and accepts a stop only through completion checks.' },
   { id: 'tools', parent: 'case', level: 1, file: '30-tools.js', color: 'blue',
-    title: 'Tool Management', kicker: 'From decision to data',
-    summary: 'A declared action registry, validation before execution, set-valued parameters, timeouts, and one Observation with a status for every call.' },
-  { id: 'registry', parent: 'tools', level: 2, file: '31-registry.js', color: 'blue',
-    title: 'Action Registry', kicker: 'The declared action set',
-    summary: 'Each action with its parameters, units, allowed values, preconditions, phase and cost estimate: what the program validates against.' },
+    title: 'Tool Registry', kicker: 'One list of actions',
+    summary: 'Every action in one registry. Data access on an MCP server inside the internal environment; registry, validation and normalization in the program.' },
   { id: 'observation', parent: 'tools', level: 2, file: '32-observation.js', color: 'teal',
     title: 'Observation and Status', kicker: 'What a query returns',
-    summary: 'One record per requested location; valid or missing; result status; and the four coverage situations the program keeps apart.' },
+    summary: 'One record per requested location; valid or missing; result status; and the coverage situations the program keeps apart.' },
   { id: 'state', parent: 'case', level: 1, file: '40-state.js', color: 'teal',
     title: 'State and Trace', kicker: 'What the program remembers',
-    summary: 'Immutable State snapshots with provenance per grid location, region summaries, the frontier rule, impact invalidation, Steps and the Trace.' },
-  { id: 'checks', parent: 'case', level: 1, file: '50-checks.js', color: 'pink',
-    title: 'Validation and Completion', kicker: 'The program decides',
-    summary: 'Parsing with a retry cap, one response rule per failure, completion checks that accept a stop, and run caps with typed end reasons.' },
+    summary: 'Facts with provenance, the coverage classes, region summaries and the frontier rule, how one observation updates State, and what a Step records.' },
+  { id: 'caps', parent: 'case', level: 1, file: '55-caps.js', color: 'magenta',
+    title: 'Run Caps', kicker: 'Bounded cost, typed ends',
+    summary: 'Step cap, query budget in area, wall time and repeated-query detection, checked every round; and what a typed end reason means.' },
   { id: 'offline', parent: 'case', level: 1, file: '60-offline.js', color: 'lime',
     title: 'Offline Evaluation', kicker: 'From trace to evidence',
     summary: 'How recorded traces become metrics, error localization, recovery experiments and the baseline comparison against a general coding agent.' }
@@ -34,6 +34,6 @@ window.ATLAS_CATALOG = [
 
 /* Main tour: the case, then the modules in loop order. The full tour is computed depth-first by the engine. */
 window.ATLAS_TOURS = {
-  bigpicture: ['case', 'loop', 'context', 'tools', 'state', 'checks', 'offline'],
+  bigpicture: ['case', 'init', 'context', 'decision', 'tools', 'state', 'caps', 'offline'],
   deep: null
 };

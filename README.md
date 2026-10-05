@@ -9,14 +9,14 @@ The app is static. Open `index.html` in Chrome or Edge. No build step, no server
 Nine chambers in three levels:
 
 ```
-L0  case         Outage Case, End to End        10 steps  the recorded run, step by step
-├─ L1 loop       The Investigation Loop          5 steps  graph, one round, failures, ends, who decides
-├─ L1 context    Context Builder                 5 steps  render from State, sections, sizes, stable prefix
-├─ L1 tools      Tool Management                 5 steps  registry, validation, set-valued params, MCP
-│   ├─ L2 registry     Action Registry           4 steps  ActionSpec, coverage.query, impact.estimate, proposed actions
+L0  case         Outage Case, End to End        10 steps  Start, Action 1 to 8, End of the run
+├─ L1 init       Initialization                  4 steps  task in, geometry around the cell, initial State, hand-off
+├─ L1 context    Context Builder                 3 steps  why render from State, how it is built, what stays out
+├─ L1 decision   Decision Pipeline               4 steps  the model proposes, parse, validate, finish request and completion
+├─ L1 tools      Tool Registry                   5 steps  one registry, MCP for data access, registration, the actions, validate-execute-normalize
 │   └─ L2 observation  Observation and Status    4 steps  one record per location, four situations, status, provenance
-├─ L1 state      State and Trace                 4 steps  State fields, update and frontier, Step, conclusions cite State
-├─ L1 checks     Validation and Completion       5 steps  parse, per-failure rules, completion checks, signals, caps
+├─ L1 state      State and Trace                 3 steps  what State holds, update and frontier, Step and Trace
+├─ L1 caps       Run Caps                        2 steps  checked every round, typed ends
 └─ L1 offline    Offline Evaluation              5 steps  metrics, baseline, localization, recovery, tuning
 ```
 
@@ -53,7 +53,7 @@ css/                  theme, panels, fonts
 fonts/                bundled fonts (Inter, Instrument Serif, JetBrains Mono; all OFL)
 js/core/catalog.js    the chamber tree and the tours
 js/core/glossary.js   hover definitions for the deep-dive text
-js/core/draw.js       shared drawing helpers: the grid map, the loop diagram, key-value panels, decision cards
+js/core/draw.js       shared drawing helpers: the grid map, key-value panels, decision cards
 js/core/engine.js     playback, zoom, cards, deep dive, progress, map (from Genesis Atlas, voice removed)
 js/core/ctx.js        the drawing and animation toolkit handed to every scene (from Genesis Atlas)
 js/core/narrator.js   reading-speed clock that paces points (voice is disabled)

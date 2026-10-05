@@ -94,7 +94,7 @@
           {
             say: 'The proposed Observation wraps the existing result with a status for the call itself: ok, empty, missing data, error or timeout. For a set valued query each member gets its own status and records.',
             card: { tag: 'HOW IT WORKS', title: 'Observation { status, members[] }', body: 'A member that timed out has status timeout and no records. The others still enter State. Nothing is lost to one slow query.' },
-            deep: '<p>This is the H3 pattern from the harness comparison: every call gets a result, even on timeout or denial, so the next model call is valid. Codex returns "aborted by user after X seconds" for a cancelled call; Gemini inserts a placeholder response for a lost one. Here the placeholder is a typed status inside State.</p>'
+            deep: '<p>This is the H3 pattern from the harness comparison: every call gets a result, even on timeout or denial, so the next model call is valid.</p>'
           },
           {
             say: 'Empty means the query ran and the scope had no locations, which can happen for a reference that resolves to nothing. Missing data means every record came back missing. Error means the function failed. Each is rendered differently.',
@@ -104,7 +104,7 @@
           {
             say: 'The duration of each call is recorded with the Observation. It is the input of the wall time cap and the per query timeout, and it tells the offline evaluation where the time went.',
             card: { tag: 'NUMBERS', title: 'Timing fields', stat: { v: 'duration_ms', l: 'per member and per Observation; the proposed per-query timeout turns a slow member into status timeout' } },
-            deep: '<p>TurnL declares timing fields on its tool executions and never fills them, which makes its trace less useful than its types suggest. The outage design records duration at the point where the function returns, so the trace carries it from the first run.</p>'
+            deep: '<p>The outage design records duration at the point where the function returns, so the trace carries it from the first run.</p>'
           }
         ],
         run: function (ctx) {
@@ -133,7 +133,7 @@
           {
             say: 'Per grid location, an evidence index names the observation that produced the current record. When a location is queried again, the index moves to the newer observation. The older file stays.',
             card: { tag: 'KEY IDEA', title: 'Newest observation wins per location', body: 'Step 7 re-queried S2 roadside: 40 index entries moved from obs_04 to obs_07. Counts did not change.' },
-            deep: '<p>This is the state-sync rule applied to analysis. SWE-agent removes old views of a file from the model\'s context so the model cannot act on a stale copy; Codex verifies a patch against the current file. Here the current fact per location comes from the latest evidence, and the older evidence is kept for audit, not for reasoning.</p>'
+            deep: '<p>The current fact per location comes from the latest evidence, and the older evidence is kept for audit, not for reasoning.</p>'
           },
           {
             say: 'From the links and the index, the program can rebuild every record it ever used. The prototype does this on every update, so a State that disagrees with its evidence is rejected before it is written.',

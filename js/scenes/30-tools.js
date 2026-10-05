@@ -1,167 +1,226 @@
-/* L1 — Tool Management. From a parsed decision to data: the declared registry, validation before execution,
- * set-valued parameters, and one Observation with a status for every call. */
+/* L1 — Tool Registry. One list of actions the model may propose; data-access tools on an MCP server, the
+ * registry, validation and normalization in the program. */
 (function () {
   var D = window.OutageDraw;
-  var CASE = window.OUTAGE_CASE;
+
+  var ACTIONS = [
+    ['cell.lookup', 'MCP server', 'initialization', 'in design'],
+    ['osm.geometry', 'MCP server', 'initialization', 'in design'],
+    ['coverage.query', 'MCP server', 'coverage phase', 'exists (prototype)'],
+    ['kpi.query', 'MCP server', 'backup phase', 'proposed'],
+    ['impact.estimate', 'program', 'backup phase', 'exists (prototype)'],
+    ['observation.rows', 'program', 'any', 'proposed']
+  ];
 
   Atlas.register({
     id: 'tools',
     refs: [
-      'OpenAI, <i>Unrolling the Codex agent loop</i>, 2026',
-      'Yang et al., <i>SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering</i>, NeurIPS 2024'
+      'Anthropic, <i>Model Context Protocol specification</i>, 2025',
+      'OpenAI, <i>Unrolling the Codex agent loop</i>, 2026'
     ],
-    poster: 1,
+    poster: 2,
     steps: [
       {
-        title: 'Two tools, one registry',
+        title: 'One registry',
         beats: [
           {
-            say: 'Two tools exist. Coverage query takes a geographic reference and returns one record per grid location. Impact estimate takes a scope and thresholds and returns backup assignments and loads.',
-            card: { tag: 'HOW IT WORKS', title: 'Two Python functions', body: '<code>coverage.query(reference)</code> and <code>impact.estimate(scope, thresholds)</code>. Both run in the synthetic demo.' },
-            deep: '<p>Both are read-only over frozen data. <code>coverage.query</code> resolves the reference to its grid ids and returns a record per id with status valid or missing, the cells heard with RSRP and RSRQ, and the synthetic D0 traffic. <code>impact.estimate</code> reads State and the executed observations only.</p>'
+            say: 'Every action the model may propose is an entry in one registry, keyed by name. The registry is the program\'s single source for what exists, what each action needs, and when it may be used.',
+            card: { tag: 'KEY IDEA', title: 'One list, one layer', body: 'Data queries and program computations sit side by side. The model, the validator and the context builder all read the same list.' },
+            deep: '<p>The registry is used three ways. The validator checks a decision against it. The context builder renders the entries allowed in the current phase as the available actions. The executor routes an action name to its implementation. Nothing else knows the tools.</p>'
           },
           {
-            say: 'Around them sits a registry: for each action its parameters with types and units, allowed values, preconditions, the phase it belongs to, and its cost.',
-            card: { tag: 'KEY IDEA', title: 'The registry is what validation checks against', body: 'name · params · preconditions · phase · cost. Open the Action Registry chamber for each action.' },
-            deep: '<p>The program can only validate a proposal against a declaration. The registry is that declaration: <code>ActionSpec</code> with parameter specs, preconditions as predicates over State, and a cost estimate in queried locations so the budget check runs before execution.</p>'
+            say: 'An entry carries more than a name. It has parameter names with types, units and allowed values, the preconditions that must hold in State, the phase it belongs to, and how its result becomes an Observation.',
+            card: { tag: 'HOW IT WORKS', title: 'What an entry holds', body: 'name · description · parameters (type, unit, allowed values, set-valued or not) · preconditions over State · phase · cost estimate · result normalization.' },
+            deep: '<p>Parameters refer to things that exist in State: reference ids, cell ids, time windows derived from the outage time. Preconditions are predicates over State, for example that backup candidates are known before a KPI query. The cost estimate is in queried locations, which is the budget unit of a run.</p>'
           },
           {
-            say: 'Every call returns an Observation with a status: ok, empty, missing data, error or timeout. That is what makes the four coverage situations computable.',
-            card: { tag: 'KEY IDEA', title: 'Every call yields an Observation', body: 'Including failures, so the next model call is always valid. Open the Observation and Status chamber for the contract.' },
-            deep: '<p>Per record the prototype already distinguishes valid from missing, and per result complete from partial missing. The wrapper statuses error and timeout make a failed or slow query an Observation too, so it enters State and is rendered.</p>'
+            say: 'Six entries are planned. Four are data access, two are program computation. Where an entry runs is an implementation detail; to the model and the validator they are all the same kind of thing.',
+            card: { tag: 'NUMBERS', title: 'The action set', stat: { v: '6', l: 'entries: cell.lookup, osm.geometry, coverage.query, kpi.query, impact.estimate, observation.rows' } },
+            deep: '<p>Two exist in the prototype: <code>coverage.query</code> and <code>impact.estimate</code>. Two exist in design for initialization. <code>kpi.query</code> and <code>observation.rows</code> are proposed. The recorded case used only the two prototype entries.</p>'
           }
         ],
         run: function (ctx) {
           var S = ctx.state;
-          S.t1 = ctx.node({ x: 330, y: 240, w: 400, h: 70, title: 'coverage.query', sub: 'reference → one record per grid id', icon: 'search', color: 'blue', titleSize: 15, subSize: 11, glow: false });
-          S.t2 = ctx.node({ x: 330, y: 340, w: 400, h: 70, title: 'impact.estimate', sub: 'scope, thresholds → assignments, loads', icon: 'chart', color: 'blue', titleSize: 15, subSize: 11, glow: false });
-          return ctx.reveal([S.t1, S.t2], { from: 'left', stagger: 150 }).then(function () { return ctx.beat(1); }).then(function () {
-            S.reg = ctx.node({ x: 900, y: 290, w: 300, h: 120, title: 'action registry', sub: 'params · units · allowed values · preconditions · phase · cost', icon: 'doc', color: 'blue', kind: 'ghost', titleSize: 15, subSize: 10.5, glow: false });
-            S.r1 = ctx.link(S.t1, S.reg, { color: 'blue', sw: 1.2, dash: '3 4', label: 'declared by', labelDy: -10 });
-            S.r2 = ctx.link(S.t2, S.reg, { color: 'blue', sw: 1.2, dash: '3 4' });
-            ctx.hotspot(S.reg, 'registry');
-            return Promise.all([ctx.reveal(S.reg, { from: 'up' }), ctx.reveal([S.r1, S.r2], { from: 'draw', delay: 200 })]);
+          S.reg = ctx.node({ x: 800, y: 150, w: 320, h: 56, title: 'tool registry', sub: 'one entry per action, keyed by name', color: 'blue', titleSize: 14, subSize: 11, glow: false });
+          S.readers = ['validator', 'context builder', 'executor'].map(function (n, i) {
+            return ctx.node({ x: 440 + i * 360, y: 280, w: 220, h: 46, title: n, color: 'magenta', titleSize: 12.5, glow: false });
+          });
+          S.rl = S.readers.map(function (n) { return ctx.link(S.reg, n, { color: 'dim' }); });
+          return ctx.reveal([S.reg].concat(S.readers, S.rl), { from: 'fade' }).then(function () { return ctx.beat(1); }).then(function () {
+            S.entry = ctx.code({ x: 80, y: 360, w: 640, title: 'registry entry · coverage.query', lang: 'text', size: 11, color: 'blue', lines: [
+              'name:          coverage.query',
+              'parameters:    reference: reference_id in State (set-valued, max 4)',
+              '               epoch: pre_outage',
+              'preconditions: reference resolves; budget remaining >= cost',
+              'phase:         coverage',
+              'cost:          number of grid locations in the reference',
+              'result:        one record per location -> Observation with status',
+              'runs on:       MCP server'
+            ] });
+            return ctx.reveal(S.entry, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
-            S.obs = ctx.node({ x: 1350, y: 290, w: 300, h: 120, title: 'Observation', sub: 'status: ok | empty | missing | error | timeout', icon: 'db', color: 'teal', kind: 'cyl', titleSize: 15, subSize: 10.5, glow: false });
-            S.o1 = ctx.link(S.reg, S.obs, { color: 'teal', sw: 1.2, label: 'every call returns one', labelDy: -10 });
-            ctx.hotspot(S.obs, 'observation');
-            return Promise.all([ctx.reveal(S.obs, { from: 'up' }), ctx.reveal(S.o1, { from: 'draw', delay: 200 })]);
+            S.list = D.kv(ctx, 800, 360, 700, ACTIONS.map(function (a) { return [a[0] + '  ·  ' + a[2], a[1] + '  ·  ' + a[3]]; }), { title: 'the action set · where it runs · status', color: 'blue', lh: 24 });
+            return ctx.reveal(S.list.g, { from: 'up' });
           });
         }
       },
       {
-        title: 'Validate, then run',
+        title: 'MCP for data access',
         beats: [
           {
-            say: 'Validation runs before any query. The action name must be in the registry, each parameter must have the right type and unit, a reference must exist in State, and the preconditions must hold.',
-            card: { tag: 'HOW IT WORKS', title: 'Four checks, no model', body: 'name · parameter types and values · references exist · preconditions. Each failure has its own message back to the model.' },
-            deep: '<p>For step 4 of the case: <code>coverage.query</code> exists; <code>S2_roadside</code> is a known reference with 40 grid ids; the geometry equals the reference geometry; the epoch is pre-outage. Had the reference been unknown, the error would list the known references and the round would start again.</p>'
+            say: 'The tools that read confidential data run on an MCP server inside the internal environment. The loop is the MCP client. The model talks to neither; it only names an action.',
+            card: { tag: 'KEY IDEA', title: 'Server for data, program for judgment', body: 'cell.lookup, osm.geometry, coverage.query and kpi.query live on the server. The registry, validation, State and normalization live in the program.' },
+            deep: '<p>MCP is a protocol between an application and a tool server. A server declares its tools with a name, a description and a JSON schema; the client calls them and gets records back. It does not change who interprets the data: the client does, after the call.</p>'
           },
           {
-            say: 'A precondition is a predicate over State. Impact estimate requires queried locations where D0 was present. Before step one it is rejected; at step eight it runs.',
-            card: { tag: 'KEY IDEA', title: 'Preconditions are the phase boundary', body: 'The backup phase cannot start without coverage evidence. Not a prompt instruction: a check the program runs.' },
-            deep: '<p>The model may propose <code>impact.estimate</code> at any time; the registry says it needs <code>Study_area.target &gt; 0</code>. In the recorded case the first seven steps build that evidence and step 8 passes the check.</p>'
+            say: 'Computation that reads State stays in the program. Impact estimation needs to know which locations had the down cell, which is State, so it runs locally. It is still a registry entry like the others.',
+            card: { tag: 'HOW IT WORKS', title: 'impact.estimate is local', body: 'Same registry, same validation, same Observation contract. Different implementation: a function in the program, because the server must not hold State.' },
+            deep: '<p>The server holds no investigation state. Anything that depends on what has been learned so far, impact estimation, frontier computation, statistics, is program code. The registry hides the difference: an entry says where it runs, and the executor routes accordingly.</p>'
           },
           {
-            say: 'Validity is not wisdom. Whether a reference exists is a program fact. Whether querying it is a good idea is a judgment, left to the model.',
-            card: { tag: 'TRADE-OFF', title: 'Validity, not wisdom', body: 'A passing check means the call is well formed and allowed. It does not mean the investigation strategy is right.' },
-            deep: '<p>Keeping the two apart keeps the trace readable: a rejection means the model proposed something the program could not run; a failed completion check means the investigation was not finished. Different fixes, different experiments.</p>'
+            say: 'One boundary around the data pays twice. The confidential data never leaves the environment, and the same server lets a general coding agent run the baseline with identical tools.',
+            card: { tag: 'WHY IT MATTERS', title: 'One server, two harnesses', body: 'The outage loop and the Codex CLI baseline call the same MCP server. The difference between them is then only the harness, which is what the experiment measures.' },
+            deep: '<p>Codex CLI sees the server\'s schema only. The outage loop sees the schema plus preconditions, phase, cost and the rendered State. Running both against the same server on the same cases isolates the effect of the harness.</p>'
           }
         ],
         run: function (ctx) {
           var S = ctx.state;
-          ctx.fade([S.t1, S.t2, S.reg, S.obs, S.r1, S.r2, S.o1], 0.12, 400);
-          S.checks = ctx.code({ x: 80, y: 180, w: 720, title: 'validate(decision, State) → ok | failure', lang: 'text', size: 11, color: 'blue', lines: [
-            '1. action name in registry           coverage.query ✓',
-            '2. parameter types, units, values    reference: id ✓   epoch: pre_outage ✓',
-            '3. references exist in State         S2_roadside → 40 grid ids ✓',
-            '4. preconditions over State          (none for coverage.query) ✓'
+          ['reg', 'entry'].forEach(function (k) { if (S[k]) ctx.fade(S[k], 0.15, 300); });
+          S.readers.forEach(function (n) { ctx.fade(n, 0.15, 300); }); S.rl.forEach(function (l) { ctx.fade(l, 0.15, 300); });
+          if (S.list) ctx.fade(S.list.g, 0.15, 300);
+          S.srv = ctx.rect(80, 150, 560, 330, { rx: 12, fill: 'rgba(5,10,22,0.85)', stroke: 'blue', sw: 1.4, dash: '7 5' });
+          S.srvL = ctx.text(96, 172, 'MCP server · internal environment · data access only', { size: 12.5, weight: 700, color: 'blue' });
+          S.srvTools = ['cell.lookup', 'osm.geometry', 'coverage.query', 'kpi.query'].map(function (n, i) {
+            return ctx.node({ x: 360, y: 230 + i * 60, w: 480, h: 44, title: n, color: 'blue', titleSize: 12.5, glow: false });
+          });
+          S.prg = ctx.rect(760, 150, 760, 330, { rx: 12, fill: 'rgba(5,10,22,0.85)', stroke: 'magenta', sw: 1.4 });
+          S.prgL = ctx.text(776, 172, 'program · the loop · MCP client', { size: 12.5, weight: 700, color: 'magenta' });
+          S.prgParts = ['tool registry', 'validation', 'execute and normalize', 'State'].map(function (n, i) {
+            return ctx.node({ x: 1140, y: 230 + i * 60, w: 480, h: 44, title: n, color: i === 3 ? 'teal' : 'magenta', titleSize: 12.5, glow: false });
+          });
+          S.call = ctx.link({ x: 760, y: 350 }, { x: 640, y: 350 }, { color: 'blue', label: 'tools/call → records', labelDy: -10 });
+          return ctx.reveal([S.srv, S.srvL, S.prg, S.prgL].concat(S.srvTools, S.prgParts, [S.call]), { from: 'fade' }).then(function () { return ctx.beat(1); }).then(function () {
+            S.local = ctx.node({ x: 1140, y: 520, w: 480, h: 44, title: 'impact.estimate · runs in the program', sub: 'reads State: which locations had D0', color: 'magenta', titleSize: 12.5, subSize: 10.5, glow: false });
+            return ctx.reveal(S.local, { from: 'up' });
+          }).then(function () { return ctx.beat(2); }).then(function () {
+            S.base = ctx.node({ x: 360, y: 560, w: 480, h: 44, title: 'baseline harness (Codex CLI)', sub: 'same server, schema only', color: 'dim', kind: 'ghost', titleSize: 12.5, subSize: 10.5, glow: false });
+            S.bl = ctx.link(S.base, { x: 360, y: 482 }, { color: 'dim', dash: '4 4', label: 'tools/call', labelDx: 50 });
+            return ctx.reveal([S.base, S.bl], { from: 'fade' });
+          });
+        }
+      },
+      {
+        title: 'Registration at startup',
+        beats: [
+          {
+            say: 'At startup the program connects to the server and asks for its tool list. For each tool it merges the server\'s name, description and schema with a local policy entry that adds what the protocol cannot express.',
+            card: { tag: 'HOW IT WORKS', title: 'Server schema plus local policy', body: 'From the server: name, description, input schema. From the program: phase, preconditions, cost estimate, set-valued cap, result normalization.' },
+            deep: '<p>MCP tool declarations are generic. They cannot say that a KPI query needs known backup candidates, or that a coverage query costs its number of locations. Those rules are the investigation\'s, so they are kept in a local policy file and merged at registration.</p>'
+          },
+          {
+            say: 'A mismatch is an error, not a default. A server tool with no policy entry, or a policy entry with no server tool, stops the program at startup.',
+            card: { tag: 'PITFALL', title: 'No silent defaults', body: 'If the server and the policy disagree, nothing runs. A tool the program does not know how to validate must not be offered to the model.' },
+            deep: '<p>This follows the project rule against fallback logic. The alternative, exposing a server tool with generic validation, would let the model propose an action the program cannot check against State.</p>'
+          },
+          {
+            say: 'Local actions register the same way without a server: their entry is written directly. The result is one registry, built once per run, that the rest of the program reads.',
+            card: { tag: 'KEY IDEA', title: 'Built once, read everywhere', body: 'Registration happens before the first model call. After it, the registry is read-only for the run.' },
+            deep: '<p>Because the registry is fixed per run, the available-actions section of the context changes only with the phase, never with a tool appearing or disappearing mid-run. Validation results are therefore reproducible from the trace.</p>'
+          }
+        ],
+        run: function (ctx) {
+          var S = ctx.state;
+          [S.srv, S.srvL, S.prg, S.prgL, S.call, S.local, S.base, S.bl].concat(S.srvTools, S.prgParts).forEach(function (e) { if (e) ctx.fade(e, 0.12, 300); });
+          S.lst = ctx.code({ x: 80, y: 160, w: 560, title: 'from the server · tools/list', lang: 'json', size: 10.5, color: 'blue', lines: [
+            '{ "name": "coverage.query",',
+            '  "description": "pre-outage coverage records for a reference",',
+            '  "inputSchema": { "reference": "string[]", "epoch": "string" } }'
           ] });
-          return ctx.reveal(S.checks, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
-            S.pre = ctx.code({ x: 840, y: 180, w: 700, title: 'precondition: impact.estimate', lang: 'text', size: 11, color: 'blue', lines: [
-              'requires: Study_area.target > 0   (queried, valid, D0 present)',
-              'state_00: target = 0   → precondition_unmet',
-              'state_07: target = 252 → ok'
-            ] });
-            return ctx.reveal(S.pre, { from: 'up' });
+          S.pol = ctx.code({ x: 680, y: 160, w: 560, title: 'from the program · policy entry', lang: 'text', size: 10.5, color: 'magenta', lines: [
+            'coverage.query:',
+            '  phase: coverage',
+            '  preconditions: reference in State; budget >= cost',
+            '  cost: locations(reference)',
+            '  set_valued: reference, max 4',
+            '  normalize: records -> Observation(status per location)'
+          ] });
+          return ctx.reveal([S.lst, S.pol], { from: 'up', stagger: 120 }).then(function () { return ctx.beat(1); }).then(function () {
+            S.err = D.kv(ctx, 80, 420, 560, [['server tool, no policy entry', 'startup error'], ['policy entry, no server tool', 'startup error'], ['schema differs from policy parameters', 'startup error']], { title: 'mismatch', color: 'red' });
+            return ctx.reveal(S.err.g, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
-            S.split = D.kv(ctx, 80, 400, 1460, [['program fact (validate)', 'reference exists · types match · precondition holds'], ['judgment (the model)', 'is this the best next query? is the scope sufficient?']], { title: 'validity vs wisdom', color: 'blue' });
-            return ctx.reveal(S.split.g, { from: 'up' });
+            S.merged = ctx.node({ x: 960, y: 480, w: 560, h: 56, title: 'tool registry · 6 entries · read-only for the run', color: 'blue', titleSize: 13, glow: false });
+            S.m1 = ctx.link({ x: 360, y: 318 }, S.merged, { color: 'blue', bend: { x: 360, y: 508 } });
+            S.m2 = ctx.link({ x: 960, y: 318 }, S.merged, { color: 'magenta' });
+            return ctx.reveal([S.merged, S.m1, S.m2], { from: 'fade' });
           });
         }
       },
       {
-        title: 'Set-valued parameters',
+        title: 'The actions',
         beats: [
           {
-            say: 'Many outage queries are independent: two settlements, both sides of a corridor, three candidate backup cells. A set valued parameter handles this as one decision.',
-            card: { tag: 'KEY IDEA', title: 'One decision, a set of members', body: 'regions {S2, S3} is one action. The tool executes the members concurrently; the loop sees one Step and one Observation.' },
-            deep: '<p>One decision per Step is what error localization and modified-step re-runs need. The program owns the tools, so it can declare a parameter as a set instead of letting the model emit several calls per reply.</p>'
+            say: 'Coverage query takes one or more references and returns one record per location: valid with a list of cells and signals, or missing. Nothing is interpreted on the server.',
+            card: { tag: 'HOW IT WORKS', title: 'coverage.query', body: 'In: reference ids, epoch. Out: one record per grid location. Set-valued: several references in one call, executed together, one Observation with a status per reference.' },
+            deep: '<p>The record contract is strict: exactly one record per requested location, a status of valid or missing, and for a valid record a cell list that may be empty. An empty list is evidence of no coverage; a missing record is not evidence of anything.</p>'
           },
           {
-            say: 'Each member gets its own status inside the Observation. A member that times out does not hide the others. The cost is the sum over members, and a batch cap bounds it.',
-            card: { tag: 'HOW IT WORKS', title: 'Per-member status, summed cost', body: 'Observation.members: [{member, status, records}]. Batch cap 4. Validation checks every member against State.' },
-            deep: '<p>With the 2,400-location study area a set of four settlements can cost several hundred locations, so the per-step budget check uses the summed cost estimate before execution.</p>'
+            say: 'KPI query takes cell ids and a time window and returns the measured indicators per cell. It is only allowed once backup candidates are known from coverage.',
+            card: { tag: 'HOW IT WORKS', title: 'kpi.query (proposed)', body: 'In: cell ids, time window, indicator names. Out: values with units and source. Precondition: the cells appear in coverage records as candidates.' },
+            deep: '<p>KPI values are stored per cell, window, indicator, unit and source, as the handoff requires. They are not written into grid locations. Measured values and estimates derived from them are kept apart.</p>'
           },
           {
-            say: 'Frontier expansion stays sequential: the next scope depends on the frontier result. Sets are an efficiency for known candidates, never a necessity.',
-            card: { tag: 'WHY IT MATTERS', title: 'Fewer model rounds, same area', body: 'Six independent queries as one set cost one model call instead of six. A per-query timeout and a wall-time cap bound the delay.' },
-            deep: '<p>A model call with a few thousand input tokens takes tens of seconds; a coverage query takes seconds. Sets reduce the number of model rounds; they do not change the queried area or the result.</p>'
+            say: 'Impact estimate reads State, not the server. For every queried location where the down cell was present it picks an eligible backup by stated thresholds and estimates the load, with the scope and the exclusions written into the result.',
+            card: { tag: 'HOW IT WORKS', title: 'impact.estimate', body: 'In: scope reference, thresholds. Out: assignments, per-backup loads, exclusions and limitations. Invalidated by any later spatial observation.' },
+            deep: '<p>The rule in the prototype is a demonstration: exclude the down cell, keep candidates above both thresholds, take the strongest, break ties by cell id. The load formula is linear in transferred traffic. Both are stated in the result so the model reads them as assumptions, not as facts about the network.</p>'
           }
         ],
         run: function (ctx) {
           var S = ctx.state;
-          ctx.fade([S.checks, S.pre, S.split.g], 0.1, 400);
-          S.dec = ctx.code({ x: 80, y: 180, w: 640, title: 'one decision with a set-valued parameter', lang: 'text', size: 11, color: 'amber', lines: ['action:     coverage.query', 'parameters: references = {S2_remaining, S3}', 'gap:        does D0 reach the S2 interior, and is S3 covered at all?'] });
-          return ctx.reveal(S.dec, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
-            S.m1 = ctx.node({ x: 980, y: 210, w: 240, h: 54, title: 'S2_remaining', sub: '160 locations · ok · 9 missing', color: 'blue', titleSize: 13, subSize: 10.5, glow: false });
-            S.m2 = ctx.node({ x: 980, y: 290, w: 240, h: 54, title: 'S3', sub: '48 locations · ok · 2 missing', color: 'blue', titleSize: 13, subSize: 10.5, glow: false });
-            S.m3 = ctx.node({ x: 1380, y: 250, w: 260, h: 70, title: 'Observation (one)', sub: 'members: 2 · cost: 208 locations', color: 'teal', kind: 'cyl', titleSize: 13, subSize: 10.5, glow: false });
-            S.ml = [ctx.link(S.m1, S.m3, { color: 'teal', sw: 1.2 }), ctx.link(S.m2, S.m3, { color: 'teal', sw: 1.2 })];
-            S.mlab = ctx.label(980, 360, 'executed concurrently inside the tool · batch cap 4', { color: 'blue', size: 11.5 });
-            return Promise.all([ctx.reveal([S.m1, S.m2, S.m3], { from: 'up', stagger: 100 }), ctx.reveal(S.ml, { from: 'draw', delay: 250 }), ctx.reveal(S.mlab, { from: 'down', delay: 300 })]);
+          [S.lst, S.pol, S.merged, S.m1, S.m2].forEach(function (e) { if (e) ctx.fade(e, 0.12, 300); });
+          if (S.err) ctx.fade(S.err.g, 0.12, 300);
+          S.a1 = D.kv(ctx, 80, 160, 460, [['in', 'reference ids (set-valued), epoch'], ['out', 'one record per location: valid + cells, or missing'], ['runs on', 'MCP server'], ['status', 'exists in the prototype']], { title: 'coverage.query', color: 'blue' });
+          return ctx.reveal(S.a1.g, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
+            S.a2 = D.kv(ctx, 570, 160, 460, [['in', 'cell ids, time window, indicators'], ['out', 'values per cell, window, indicator, unit, source'], ['precondition', 'candidates known from coverage'], ['status', 'proposed']], { title: 'kpi.query', color: 'blue' });
+            return ctx.reveal(S.a2.g, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
-            S.dep = D.kv(ctx, 80, 420, 1460, [['frontier expansion', 'sequential: the next scope depends on the frontier result'], ['known candidates (settlements, corridors, backup cells)', 'independent: one set-valued action'], ['delay', 'six rounds → one round; per-query timeout + wall-time cap']], { title: 'dependency structure of outage queries', color: 'blue' });
-            return ctx.reveal(S.dep.g, { from: 'up' });
+            S.a3 = D.kv(ctx, 1060, 160, 460, [['in', 'scope reference, RSRP and RSRQ thresholds'], ['out', 'assignments, backup loads, exclusions, limitations'], ['runs in', 'the program (reads State)'], ['status', 'exists in the prototype']], { title: 'impact.estimate', color: 'magenta' });
+            return ctx.reveal(S.a3.g, { from: 'up' });
           });
         }
       },
       {
-        title: 'Execute and normalize',
+        title: 'Validate, execute, normalize',
         beats: [
           {
-            say: 'Execution resolves the reference to grid ids, runs the function under a timeout, and wraps the result. The function never receives a step id or anything that could select an answer.',
-            card: { tag: 'HOW IT WORKS', title: 'Resolve, run, wrap', body: 'resolve_reference → grid ids; query_coverage(ids) → records; normalize → Observation with status and duration.' },
-            deep: '<p>A timed-out member gets status timeout and no records; the Observation still exists and State records that the scope was attempted. The duration of each call is recorded for the wall-time cap and for offline evaluation.</p>'
+            say: 'Before any call, the decision is checked against the registry: the action exists, each parameter has the right type and refers to something in State, the preconditions hold, and the cost fits the remaining budget.',
+            card: { tag: 'HOW IT WORKS', title: 'Checked before it runs', body: 'Name, parameters, preconditions, budget. A failure never reaches the server; it becomes a line in the next context.' },
+            deep: '<p>Validation is deterministic program code. It does not judge whether the action is a good idea; that is the model\'s responsibility and, later, the completion checks\'. The Decision Pipeline chamber shows the failure types and what each returns.</p>'
           },
           {
-            say: 'The result is checked against the contract before it reaches State: one record per requested id, missing records carry no signals, valid records have finite values, and the result status agrees with the records.',
-            card: { tag: 'PITFALL', title: 'A tool result can be wrong too', body: 'A record for an id that was not requested, or a missing record with a signal, is rejected loudly.' },
-            deep: '<p>These checks exist in the prototype as <code>validate_observation</code>. A contract violation raises; there is no silent default.</p>'
+            say: 'Execution runs the members of a set-valued call together, each under a timeout. A member that times out gets its own status; the others still return.',
+            card: { tag: 'HOW IT WORKS', title: 'Together, bounded', body: 'Up to four references in one call. Each member has a timeout. Results are put back in the proposed order.' },
+            deep: '<p>Set-valued parameters replace parallel tool calls. The model still makes one decision per step; the program executes its members concurrently and returns one Observation. This keeps one decision per Step, which the trace and error localization rely on.</p>'
           },
           {
-            say: 'The raw result stays on disk with a path. State keeps a link and an evidence index from each grid id to the observation that produced its current record.',
-            card: { tag: 'NUMBERS', title: 'Seven results on disk', stat: { v: '232 KB', l: 'obs_01 to obs_07 kept in full; the model saw about 3,000 tokens of rendered facts per step' } },
-            deep: '<p>The model gets counts; the file is there for drill-down and for offline evaluation. The provenance section of the rendering names the observation ids so facts can be traced back.</p>'
+            say: 'Every result is normalized into an Observation with a status: ok, empty, missing data, error or timeout. The raw result is stored on disk; State receives the Observation.',
+            card: { tag: 'KEY IDEA', title: 'Every call yields an Observation', body: 'Even a failure is an Observation with a status. The next step always has something to update State with, and the model always sees what happened.' },
+            deep: '<p>The status field is what makes the four coverage situations computable: unqueried, missing, no coverage, other cells only. The Observation chamber shows the contract in detail.</p>'
           }
         ],
         run: function (ctx) {
           var S = ctx.state;
-          ctx.fade([S.dec, S.m1, S.m2, S.m3, S.ml, S.mlab, S.dep.g], 0.1, 400);
-          S.ex = D.loop(ctx, { names: ['resolve_reference', 'query_coverage', 'validate_result', 'normalize'], subs: { resolve_reference: 'id → geometry + grid ids', query_coverage: 'ids → records · timeout', validate_result: 'one record per id · shapes', normalize: 'Observation + status' }, colors: { normalize: 'teal' }, x: 120, y: 230, w: 300, h: 60, gap: 60, loopBack: false });
-          return ctx.reveal(S.ex.g, { from: 'up' }).then(function () { return ctx.beat(1); }).then(function () {
-            S.contract = ctx.code({ x: 80, y: 340, w: 720, title: 'validate_result (prototype: validate_observation)', lang: 'text', size: 10.5, color: 'blue', lines: [
-              'exactly one record per requested grid id',
-              'missing record → no cells, no traffic',
-              'valid record   → finite RSRP/RSRQ, unique cell ids, finite demand',
-              'result_status agrees with the records',
-              'violation → raise; no silent default'
-            ] });
-            return ctx.reveal(S.contract, { from: 'up' });
+          ['a1', 'a2', 'a3'].forEach(function (k) { if (S[k]) ctx.fade(S[k].g, 0.12, 300); });
+          S.pipe = ['decision', 'validate', 'execute', 'normalize', 'Observation'].map(function (n, i) {
+            return ctx.node({ x: 200 + i * 300, y: 420, w: 220, h: 56, title: n, color: i === 0 ? 'amber' : (i === 4 ? 'teal' : 'magenta'), titleSize: 13, glow: false });
+          });
+          S.pl = S.pipe.slice(1).map(function (n, i) { return ctx.link(S.pipe[i], n, { color: 'dim' }); });
+          ctx.hotspot(S.pipe[4], 'observation');
+          return ctx.reveal(S.pipe.concat(S.pl), { from: 'fade' }).then(function () { return ctx.beat(1); }).then(function () {
+            S.exec = D.kv(ctx, 540, 520, 520, [['members', 'up to 4 references in one call'], ['timeout', 'per member'], ['order', 'results returned in the proposed order']], { title: 'execute', color: 'magenta' });
+            return ctx.reveal(S.exec.g, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
-            var rows = CASE.steps.filter(function (s) { return s.observation; }).map(function (s) { return [s.observation.id + ' · ' + s.observation.reference_id, (s.observation.bytes / 1024).toFixed(0) + ' KB · ' + s.observation.result_status]; });
-            S.disk = D.kv(ctx, 840, 340, 700, rows, { title: 'raw results kept on disk', color: 'teal', lh: 20 });
-            return ctx.reveal(S.disk.g, { from: 'up' });
+            S.st = D.kv(ctx, 1100, 520, 440, [['ok', 'records returned, all valid'], ['empty', 'valid records, no cells'], ['missing', 'no data for some locations'], ['error / timeout', 'the call failed; State still updated']], { title: 'Observation status', color: 'teal' });
+            return ctx.reveal(S.st.g, { from: 'up' });
           });
         }
       }

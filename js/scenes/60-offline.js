@@ -62,7 +62,7 @@
           {
             say: 'Precondition: the internal model endpoint must be reachable from Codex and support tool calling. If it does not, the baseline becomes a minimal append only loop written in the project, which measures the same thing.',
             card: { tag: 'PITFALL', title: 'The baseline needs tool calling', body: 'Open item 1. Without it, Codex CLI cannot run the internal model, and a hand-written append-only loop stands in.' },
-            deep: '<p>Gemini CLI is excluded as a baseline because it only talks to Google back ends and the coverage data is confidential. Codex CLI can point at a self-hosted OpenAI-compatible endpoint. A minimal append-only loop, in the style of mini-SWE-agent, is the fallback and is also a fair baseline.</p>'
+            deep: '<p>Codex CLI can point at a self-hosted OpenAI-compatible endpoint. A minimal append-only loop, in the style of mini-SWE-agent, is the fallback and is also a fair baseline.</p>'
           },
           {
             say: 'Three context conditions run on the same cases. A: rendered State only, as today. B: stable prefix plus rendered State plus a short step history. C: append raw observations with compaction, which is also what the Codex baseline does.',
@@ -79,7 +79,7 @@
           S.cases = ctx.node({ x: 1160, y: 275, w: 280, h: 64, title: 'same cases, same budget', sub: 'synthetic + one controlled case', color: 'lime', kind: 'cyl', titleSize: 14, subSize: 11, glow: false });
           S.bl = [ctx.link(S.cx, S.mcp, { color: 'blue', sw: 1.2 }), ctx.link(S.ours, S.mcp, { color: 'blue', sw: 1.2, dash: '3 4', label: 'direct call or MCP', labelDy: 14 }), ctx.link(S.mcp, S.cases, { color: 'lime', sw: 1.2 })];
           return Promise.all([ctx.reveal([S.cx, S.ours, S.mcp, S.cases], { from: 'up', stagger: 100 }), ctx.reveal(S.bl, { from: 'draw', delay: 250 })]).then(function () { return ctx.beat(1); }).then(function () {
-            S.pre = D.kv(ctx, 80, 440, 700, [['internal endpoint reachable from Codex', 'to check'], ['native tool calling supported', 'to check (open item 1)'], ['if not', 'minimal append-only loop in the project as baseline'], ['Gemini CLI', 'excluded: Google back ends only; data is confidential']], { title: 'preconditions', color: 'red' });
+            S.pre = D.kv(ctx, 80, 440, 700, [['internal endpoint reachable from Codex', 'to check'], ['native tool calling supported', 'to check (open item 1)'], ['if not', 'minimal append-only loop in the project as baseline'], ['data', 'stays in the internal environment behind the MCP server']], { title: 'preconditions', color: 'red' });
             return ctx.reveal(S.pre.g, { from: 'up' });
           }).then(function () { return ctx.beat(2); }).then(function () {
             S.cond = D.kv(ctx, 840, 440, 700, [['A', 'rendered State only (today)'], ['B', 'stable prefix + rendered State + last N steps'], ['C', 'append raw observations + compaction (= Codex baseline)'], ['metrics', 'tokens per step · missed area · query cost · agreement']], { title: 'context conditions', color: 'amber' });
@@ -164,7 +164,7 @@
           },
           {
             say: 'Experience across cases is the last candidate: past traces, steps or skills retrieved into the context by structured matching on cell class, region type and gap type, without embeddings. It stays a candidate until a baseline shows which failures it would fix.',
-            card: { tag: 'STATE OF THE ART', title: 'Experience retrieval, deferred', body: 'Codex and Gemini inject memory files; TurnL extracts memories with a model. Here: structured matching on case fields, if the failures call for it.' },
+            card: { tag: 'STATE OF THE ART', title: 'Experience retrieval, deferred', body: 'Codex injects memory files into the prompt. Here: structured matching on case fields, added only if the observed failures call for it.' },
             deep: '<p>The synthetic preview combines a fixed skill and the state text; it does not implement retrieval. Three context conditions come first. If condition B helps, a fourth condition with retrieved experience is the natural next experiment, with the same controls.</p>'
           },
           {
