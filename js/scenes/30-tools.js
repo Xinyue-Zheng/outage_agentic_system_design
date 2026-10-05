@@ -194,7 +194,7 @@
           {
             say: 'Before any call, the decision is checked against the registry: the action exists, each parameter has the right type and refers to something in State, the preconditions hold, and the cost fits the remaining budget.',
             card: { tag: 'HOW IT WORKS', title: 'Checked before it runs', body: 'Name, parameters, preconditions, budget. A failure never reaches the server; it becomes a line in the next context.' },
-            deep: '<p>Validation is deterministic program code. It does not judge whether the action is a good idea; that is the model\'s responsibility and, later, the completion checks\'. The Decision Pipeline chamber shows the failure types and what each returns.</p>'
+            deep: '<p>Validation is deterministic program code. It does not judge whether the action is a good idea; that is the model\'s responsibility and, later, the completion checks\'. The Decision Core chamber shows the failure types and what each returns.</p>'
           },
           {
             say: 'Execution runs the members of a set-valued call together, each under a timeout. A member that times out gets its own status; the others still return.',

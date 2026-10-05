@@ -1,4 +1,4 @@
-/* L1 — Decision Pipeline. From the model's output to an executed action or feedback: propose, parse, validate,
+/* L1 — Decision Core. From the model's output to an executed action or feedback: propose, parse, validate,
  * and the completion checks that accept a stop. */
 (function () {
   var D = window.OutageDraw;

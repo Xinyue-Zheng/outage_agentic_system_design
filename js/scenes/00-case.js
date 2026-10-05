@@ -105,9 +105,12 @@
     arrow('M1382,' + bot + ' L1382,420 L290,420 L290,' + (bot + 1), { color: 'magenta' }); lbl(836, 414, 'next round', 'middle', 'magenta');
     /* legend */
     lbl(1180, 300, 'solid: always · dashed: conditional · program nodes in colour, the model in orange', 'start');
-    /* the decision pipeline: model output, parsing, validation and completion as one zoom target */
-    S.box = ctx.rect(404, 158, 582, 176, { rx: 10, fill: 'none', stroke: 'pink', sw: 1.4, dash: '7 5', parent: g });
-    lbl(410, 150, 'decision pipeline', 'start', 'pink');
+    /* the decision core: model output, parsing, validation and completion as one zoom target */
+    S.box = ctx.group({ parent: g });
+    ctx.rect(406, 160, 448, 172, { rx: 10, fill: 'rgba(0,0,0,0.001)', stroke: 'pink', sw: 1.4, dash: '7 5', parent: S.box });
+    S.box.box = { x: 406, y: 160, w: 448, h: 172, cx: 630, cy: 246, l: 406, r: 854, t: 160, b: 332 };
+    S.box.color = 'pink';
+    lbl(412, 150, 'decision core', 'start', 'pink');
     S.graph = g;
     var G = S.G;
     ctx.hotspot(G.initialize, 'init');

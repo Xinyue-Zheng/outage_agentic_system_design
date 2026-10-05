@@ -12,7 +12,7 @@ Nine chambers in three levels:
 L0  case         Outage Case, End to End        10 steps  Start, Action 1 to 8, End of the run
 ├─ L1 init       Initialization                  4 steps  task in, geometry around the cell, initial State, hand-off
 ├─ L1 context    Context Builder                 3 steps  why render from State, how it is built, what stays out
-├─ L1 decision   Decision Pipeline               4 steps  the model proposes, parse, validate, finish request and completion
+├─ L1 decision   Decision Core               4 steps  the model proposes, parse, validate, finish request and completion
 ├─ L1 tools      Tool Registry                   5 steps  one registry, MCP for data access, registration, the actions, validate-execute-normalize
 │   └─ L2 observation  Observation and Status    4 steps  one record per location, four situations, status, provenance
 ├─ L1 state      State and Trace                 3 steps  what State holds, update and frontier, Step and Trace

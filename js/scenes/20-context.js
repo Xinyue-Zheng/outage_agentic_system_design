@@ -75,7 +75,7 @@
           {
             say: 'Feedback enters the same text. A rejected action, an unmet completion check or a parse error is written into State and appears as a line in the variable part on the next step.',
             card: { tag: 'HOW IT WORKS', title: 'Errors are rendered, not appended', body: 'The model is never handed a separate error message. It sees a sentence in the next context that says what was rejected and why.' },
-            deep: '<p>This keeps one channel between program and model. Whatever the program wants the model to know, it writes into State, and the rendering carries it. The decision pipeline chamber lists the failure types that produce such lines.</p>'
+            deep: '<p>This keeps one channel between program and model. Whatever the program wants the model to know, it writes into State, and the rendering carries it. The Decision Core chamber lists the failure types that produce such lines.</p>'
           }
         ],
         run: function (ctx) {

@@ -13,7 +13,7 @@ window.ATLAS_CATALOG = [
     title: 'Context Builder', kicker: 'What the model sees',
     summary: 'Why the model input is rendered from State instead of appended as a transcript, how the sections are built, and what stays out.' },
   { id: 'decision', parent: 'case', level: 1, file: '50-decision.js', color: 'pink',
-    title: 'Decision Pipeline', kicker: 'From model output to action',
+    title: 'Decision Core', kicker: 'From model output to action',
     summary: 'The model proposes a three-part decision; the program parses it, validates it against the registry and State, and accepts a stop only through completion checks.' },
   { id: 'tools', parent: 'case', level: 1, file: '30-tools.js', color: 'blue',
     title: 'Tool Registry', kicker: 'One list of actions',
