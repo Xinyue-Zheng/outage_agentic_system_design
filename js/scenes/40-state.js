@@ -14,7 +14,7 @@
         beats: [
           {
             say: 'State is every fact the investigation has established at one moment, with the observation that produced each fact. It is rewritten as a new snapshot after every action.',
-            card: { tag: 'KEY IDEA', title: 'Facts with their source', body: 'Task and time · areas and relations · coverage per location · summaries per area and the query boundary · impact · what is still unknown · the source of each fact.' },
+            card: { tag: 'KEY IDEA', title: 'Facts with their source', body: 'Task and time · areas and relations · coverage per location · summaries per area and the query boundary · every cell per area · impact · what is still unknown · the source of each fact.' },
             deep: '<p>Each snapshot is complete and immutable. Nothing from a later action changes an earlier snapshot.</p>'
           },
           {
@@ -23,8 +23,8 @@
             deep: '<p>The map colours each location by its class. The model reads the counts per area; the map is for people.</p>'
           },
           {
-            say: 'Per area, State keeps the counts and the query boundary: queried grid cells that share an edge with at least one unqueried grid cell. Signal values play no part in choosing it.',
-            card: { tag: 'HOW IT WORKS', title: 'Query boundary', body: 'Queried grid cells that share an edge with at least one unqueried grid cell. Then the program counts how many of them show D0.' },
+            say: 'Per area, State keeps the counts, the query boundary, and every cell the records list: where it is present, where it is the strongest cell, where it overlaps the down cell, and its RSRP range. So the backup candidates are known as soon as coverage is queried.',
+            card: { tag: 'HOW IT WORKS', title: 'Query boundary and every cell', body: 'Boundary: queried grid cells with an unqueried edge neighbour, counted for D0. Cells: after one query of S1, B1 is present at 29 of 35 valid locations, strongest at 7, with D0 at 29.' },
             deep: '<p>Within the same area, by the four-neighbour rule. D0 present on the boundary means coverage probably continues into the unqueried part, which is what a completion check reads.</p>'
           }
         ],
@@ -33,13 +33,13 @@
           S.grid = D.grid(ctx, GRID);
           S.grid.setClasses(CASE.states[4].classes);
           S.grid.legendRow(900, 600, false);
-          var secs = ['task and time', 'areas and relations', 'coverage per location', 'summaries per area · query boundary', 'impact, when computed', 'what is still unknown', 'source of each fact'];
+          var secs = ['task and time', 'areas and relations', 'coverage per location', 'summaries per area · query boundary', 'every cell per area: present · strongest · with D0 · RSRP', 'impact, when computed', 'what is still unknown', 'source of each fact'];
           S.secs = secs.map(function (t, i) { return ctx.node({ x: 440, y: 170 + i * 62, w: 740, h: 46, title: t, color: 'teal', kind: 'pill', titleSize: 14, glow: false }); });
           return ctx.reveal(S.secs.concat([S.grid.g]), { from: 'fade', stagger: 40 }).then(function () { return ctx.beat(1); }).then(function () {
             S.secs.forEach(function (n, i) { n.setAttribute('opacity', i === 2 ? 1 : 0.35); });
             return ctx.pulse(S.secs[2], { color: 'teal', times: 2, dur: 700 });
           }).then(function () { return ctx.beat(2); }).then(function () {
-            S.secs.forEach(function (n, i) { n.setAttribute('opacity', i === 3 ? 1 : 0.35); });
+            S.secs.forEach(function (n, i) { n.setAttribute('opacity', i === 3 || i === 4 ? 1 : 0.35); });
             var s2 = D.region(4, 'S2');
             S.grid.outline(s2.boundary_ids, '#ffffff');
             S.bnd = D.kv(ctx, 70, 640, 740, [['S2 after action 4', s2.queried + ' of ' + s2.total + ' queried'], ['query boundary', s2.boundary + ' locations, D0 at ' + s2.boundary_target]], { title: 'query boundary, outlined on the map', color: 'teal' });
